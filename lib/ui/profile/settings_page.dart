@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:rimlink/ui/auth/login_signup_page.dart';
 import 'package:rimlink/ui/profile/settings_subpages.dart';
 
@@ -38,7 +39,9 @@ class SettingsPage extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.exit_to_app, color: Colors.red),
               title: const Text('Sign Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-              onTap: () {
+              onTap: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (!context.mounted) return;
                 // Navigate entirely back to the login page and destroy the route stack
                 Navigator.pushAndRemoveUntil(
                   context,

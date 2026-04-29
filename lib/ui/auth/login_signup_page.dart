@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:rimlink/ui/main_navigation.dart';
 
 class LoginSignupPage extends StatefulWidget {
@@ -10,14 +11,68 @@ class LoginSignupPage extends StatefulWidget {
 
 class _LoginSignupPageState extends State<LoginSignupPage> {
   bool _isLogin = true;
+  bool _isLoading = false;
 
-  void _submitForm() {
-    // Simply route to main navigation with hardcoded behavior.
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const MainNavigation(),
-      ),
-    );
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitForm() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      if (_isLogin) {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      } else {
+        await Supabase.instance.client.auth.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          data: {'name': _nameController.text.trim()},
+        );
+      }
+      
+      if (!mounted) return;
+      
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const MainNavigation(),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please check your inbox to confirm your email address!')),
+        );
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      String message = e.message;
+      if (message.contains('Invalid login credentials')) {
+        message = 'These credentials do not exist in the records.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An unexpected error occurred.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _toggleAuthMode() {
@@ -76,6 +131,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               
               if (!_isLogin) ...[
                 TextField(
+                  controller: _nameController,
                   decoration: const InputDecoration(
                     labelText: 'Full name',
                     border: OutlineInputBorder(),
@@ -85,14 +141,16 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               ],
               
               TextField(
+                controller: _emailController,
                 decoration: const InputDecoration(
-                  labelText: 'Email or Phone',
+                  labelText: 'Email',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _passwordController,
                 decoration: const InputDecoration(
                   labelText: 'Password',
                   border: OutlineInputBorder(),
@@ -101,7 +159,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _submitForm,
+                onPressed: _isLoading ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
@@ -110,10 +168,16 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
                     borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                child: Text(
-                  _isLogin ? 'Sign in' : 'Agree & Join',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 20, 
+                        width: 20, 
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text(
+                        _isLogin ? 'Sign in' : 'Agree & Join',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
               ),
               const SizedBox(height: 24),
               TextButton(
