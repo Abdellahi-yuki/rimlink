@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
   INSERT INTO public.profiles (id, name, title, location)
-  VALUES (new.id, new.raw_user_meta_data->>'name', 'New Member', 'Earth');
+  VALUES (new.id, new.raw_user_meta_data->>'name', 'New Member', 'Not set');
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -120,3 +120,22 @@ CREATE TABLE saved_jobs (
 
 ALTER TABLE saved_jobs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their saved jobs." ON saved_jobs FOR ALL USING (auth.uid() = user_id);
+
+-- RPC Functions for Like Counting
+CREATE OR REPLACE FUNCTION increment_likes(post_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE posts
+  SET likes_count = likes_count + 1
+  WHERE id = post_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION decrement_likes(post_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE posts
+  SET likes_count = likes_count - 1
+  WHERE id = post_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

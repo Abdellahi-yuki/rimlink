@@ -1,27 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/data/supabase_service.dart';
+import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/ui/jobs/job_detail_page.dart';
-
-class JobItem {
-  final String id;
-  final String title;
-  final String company;
-  final String location;
-  final String timeAdded;
-  final bool isPromoted;
-  final bool isEasyApply;
-  bool isSaved;
-
-  JobItem({
-    required this.id,
-    required this.title,
-    required this.company,
-    required this.location,
-    required this.timeAdded,
-    this.isPromoted = false,
-    this.isEasyApply = false,
-    this.isSaved = false,
-  });
-}
 
 class JobsPage extends StatefulWidget {
   const JobsPage({super.key});
@@ -31,45 +11,47 @@ class JobsPage extends StatefulWidget {
 }
 
 class _JobsPageState extends State<JobsPage> {
+  final SupabaseService _supabaseService = SupabaseService();
   bool _showSavedOnly = false;
+  List<Job> _allJobs = [];
+  List<String> _savedJobIds = [];
+  bool _isLoading = true;
 
-  final List<JobItem> _jobs = [
-    JobItem(
-      id: 'j1',
-      title: 'Senior Flutter Engineer',
-      company: 'Apposphere',
-      location: 'San Francisco, CA (Remote)',
-      timeAdded: '3 hours ago',
-      isEasyApply: true,
-    ),
-    JobItem(
-      id: 'j2',
-      title: 'Mobile Tech Lead',
-      company: 'FinTech Global',
-      location: 'New York, NY (Hybrid)',
-      timeAdded: '1 day ago',
-      isPromoted: true,
-    ),
-    JobItem(
-      id: 'j3',
-      title: 'Android Developer',
-      company: 'Streaming Co',
-      location: 'Los Angeles, CA',
-      timeAdded: '4 days ago',
-    ),
-    JobItem(
-      id: 'j4',
-      title: 'Full Stack Engineer, Mobile',
-      company: 'Logistics Network',
-      location: 'Austin, TX (Remote)',
-      timeAdded: '1 week ago',
-      isEasyApply: true,
-      isSaved: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadJobs();
+  }
+
+  Future<void> _loadJobs() async {
+    setState(() => _isLoading = true);
+    try {
+      final jobsData = await _supabaseService.getJobs();
+      final savedIds = await _supabaseService.getSavedJobIds();
+      
+      if (mounted) {
+        setState(() {
+          _allJobs = jobsData.map((m) => Job.fromMap(m)).toList();
+          _savedJobIds = savedIds;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading jobs: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final displayJobs = _showSavedOnly 
+        ? _allJobs.where((j) => _savedJobIds.contains(j.id)).toList() 
+        : _allJobs;
+
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
@@ -93,85 +75,86 @@ class _JobsPageState extends State<JobsPage> {
         elevation: 1,
         backgroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Top action bar
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadJobs,
               child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildPillButton(
-                      Icons.bookmark, 
-                      'My jobs', 
-                      isActive: _showSavedOnly,
-                      onTap: () {
-                        setState(() {
-                          _showSavedOnly = !_showSavedOnly;
-                        });
-                      }
+                    // Top action bar
+                    Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            _buildPillButton(
+                              Icons.bookmark, 
+                              'My jobs', 
+                              isActive: _showSavedOnly,
+                              onTap: () {
+                                setState(() {
+                                  _showSavedOnly = !_showSavedOnly;
+                                });
+                              }
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Recommended jobs heading
+                    Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _showSavedOnly ? 'My saved jobs' : 'Recommended for you',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _showSavedOnly ? 'Jobs you have saved for later' : 'Based on your profile and search history',
+                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          if (displayJobs.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Center(
+                                child: Text(
+                                  _showSavedOnly ? 'No saved jobs found.' : 'No jobs available at the moment.',
+                                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                                ),
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: displayJobs.length,
+                              separatorBuilder: (context, index) => const Divider(),
+                              itemBuilder: (context, index) {
+                                final job = displayJobs[index];
+                                return _buildJobCard(job);
+                              },
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-
-            // Recommended jobs heading
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Recommended for you',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Based on your profile and search history',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Job list mapping
-                  Builder(
-                    builder: (context) {
-                      final displayJobs = _showSavedOnly ? _jobs.where((j) => j.isSaved).toList() : _jobs;
-                      
-                      if (displayJobs.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Center(
-                            child: Text('No saved jobs found.', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                          ),
-                        );
-                      }
-                      
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: displayJobs.length,
-                        separatorBuilder: (context, index) => const Divider(),
-                        itemBuilder: (context, index) {
-                          final job = displayJobs[index];
-                          return _buildJobCard(job);
-                        },
-                      );
-                    }
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -198,14 +181,16 @@ class _JobsPageState extends State<JobsPage> {
     );
   }
 
-  Widget _buildJobCard(JobItem job) {
+  Widget _buildJobCard(Job job) {
+    final isSaved = _savedJobIds.contains(job.id);
+    
     return InkWell(
       onTap: () async {
         await Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => JobDetailPage(job: job)),
+          MaterialPageRoute(builder: (context) => JobDetailPage(job: job, isSavedInitial: isSaved)),
         );
-        setState(() {}); // Reflect saved state changes from details page
+        _loadJobs(); // Refresh state after return
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -230,10 +215,6 @@ class _JobsPageState extends State<JobsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (job.isPromoted) ...[
-                const Text('Promoted', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                const SizedBox(height: 2),
-              ],
               Text(
                 job.title,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0A66C2)),
@@ -251,7 +232,7 @@ class _JobsPageState extends State<JobsPage> {
                     const Text('Easy Apply', style: TextStyle(color: Colors.grey, fontSize: 12)),
                     const SizedBox(width: 8),
                   ],
-                  Text(job.timeAdded, style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
+                  Text(job.timeAgo, style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               ),
             ],
@@ -259,17 +240,13 @@ class _JobsPageState extends State<JobsPage> {
         ),
         // Save button
         IconButton(
-          onPressed: () {
-            setState(() {
-              job.isSaved = !job.isSaved;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(job.isSaved ? 'Job saved to your list' : 'Job removed from saved list')),
-              );
-            });
+          onPressed: () async {
+            await _supabaseService.toggleSaveJob(job.id, isSaved);
+            _loadJobs();
           },
           icon: Icon(
-            job.isSaved ? Icons.bookmark : Icons.bookmark_border,
-            color: job.isSaved ? Colors.black : Colors.grey,
+            isSaved ? Icons.bookmark : Icons.bookmark_border,
+            color: isSaved ? Colors.black : Colors.grey,
           ),
         )
       ],

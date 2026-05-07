@@ -1,3 +1,4 @@
+import 'package:rimlink/models/data_models.dart';
 import 'package:flutter/material.dart';
 import 'package:rimlink/ui/feed/feed_page.dart';
 import 'package:rimlink/ui/network/network_page.dart';

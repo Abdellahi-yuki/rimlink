@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:rimlink/ui/auth/login_signup_page.dart';
 import 'package:rimlink/ui/main_navigation.dart';
+import 'package:rimlink/ui/auth/login_signup_page.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

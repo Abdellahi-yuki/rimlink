@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:rimlink/models/data_models.dart';
-import 'package:rimlink/data/mock_data.dart';
+import 'package:flutter/material.dart';
+import 'package:rimlink/data/supabase_service.dart';
+import 'package:rimlink/ui/widgets/post_widget.dart';
+import 'package:rimlink/ui/widgets/full_screen_image_viewer.dart';
+import 'package:rimlink/ui/feed/post_detail_page.dart';
 import 'package:rimlink/ui/profile/settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -12,6 +16,153 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final SupabaseService _supabaseService = SupabaseService();
+  User? _profileUser;
+  bool _isLoading = true;
+  List<Post> _userPosts = [];
+  String? _connectionStatus; // 'sent', 'received', 'accepted', or null
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickAndUploadImage(bool isAvatar) async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final bytes = await image.readAsBytes();
+      final String publicUrl = await _supabaseService.uploadImage(image.path, bytes);
+      
+      final field = isAvatar ? 'avatar_url' : 'banner_url';
+      await _supabaseService.updateProfileField(field, publicUrl);
+      
+      setState(() {
+        if (isAvatar) {
+          _profileUser?.avatarUrl = publicUrl;
+        } else {
+          _profileUser?.bannerUrl = publicUrl;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading image: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    if (widget.user != null) {
+      _profileUser = widget.user;
+    } else {
+      _profileUser = await _supabaseService.getCurrentUserProfile();
+    }
+    
+    if (_profileUser != null) {
+      await Future.wait([
+        _loadPosts(),
+        _supabaseService.getConnectionStatus(_profileUser!.id).then((status) {
+          if (mounted) setState(() => _connectionStatus = status);
+        }),
+      ]);
+    }
+    
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadPosts() async {
+    if (_profileUser == null) return;
+    final posts = await _supabaseService.getUserPosts(_profileUser!.id);
+    if (mounted) {
+      setState(() {
+        _userPosts = posts;
+      });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (_profileUser != null) {
+      await _supabaseService.updateProfile(_profileUser!);
+    }
+  }
+
+  void _showPostOptions(Post post) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Edit post'),
+            onTap: () {
+              Navigator.pop(context);
+              _editPostDialog(post);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete post', style: TextStyle(color: Colors.red)),
+            onTap: () async {
+              Navigator.pop(context);
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete post'),
+                  content: const Text('Are you sure you want to delete this post?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await _supabaseService.deletePost(post.id);
+                _loadPosts();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editPostDialog(Post post) {
+    final controller = TextEditingController(text: post.content);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Post'),
+        content: TextField(
+          controller: controller,
+          maxLines: null,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              await _supabaseService.updatePostContent(post.id, controller.text);
+              _loadPosts();
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Helpers for editing text fields
   void _editFieldDialog(String title, String initialValue, Function(String) onSave) {
     final controller = TextEditingController(text: initialValue);
@@ -32,9 +183,10 @@ class _ProfilePageState extends State<ProfilePage> {
             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               onSave(controller.text);
-              Navigator.pop(context);
+              await _saveProfile();
+              if (mounted) Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -101,7 +253,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ListTile(
               title: Text(displayUser.isOpenToWork ? 'Remove "Open to work"' : 'Finding a new job', style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Show recruiters and others that you are open to work'),
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   displayUser.isOpenToWork = !displayUser.isOpenToWork;
                   if (displayUser.isOpenToWork) {
@@ -109,13 +261,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     displayUser.isProvidingServices = false;
                   }
                 });
-                Navigator.pop(context);
+                await _saveProfile();
+                if (mounted) Navigator.pop(context);
               },
             ),
             ListTile(
               title: Text(displayUser.isHiring ? 'Remove "Hiring"' : 'Hiring', style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Share that you are hiring and attract qualified candidates'),
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   displayUser.isHiring = !displayUser.isHiring;
                   if (displayUser.isHiring) {
@@ -123,13 +276,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     displayUser.isProvidingServices = false;
                   }
                 });
-                Navigator.pop(context);
+                await _saveProfile();
+                if (mounted) Navigator.pop(context);
               },
             ),
             ListTile(
               title: Text(displayUser.isProvidingServices ? 'Remove "Providing services"' : 'Providing services', style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Showcase services you offer so new clients can discover you'),
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   displayUser.isProvidingServices = !displayUser.isProvidingServices;
                   if (displayUser.isProvidingServices) {
@@ -137,7 +291,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     displayUser.isHiring = false;
                   }
                 });
-                Navigator.pop(context);
+                await _saveProfile();
+                if (mounted) Navigator.pop(context);
               },
             ),
           ],
@@ -158,15 +313,11 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Text(displayUser.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            const ListTile(
-              leading: Icon(Icons.link, color: Colors.grey),
-              title: Text('Your Profile'),
-              subtitle: Text('linkedin.com/in/dummy-profile'),
-            ),
+
             const ListTile(
               leading: Icon(Icons.email, color: Colors.grey),
               title: Text('Email'),
-              subtitle: Text('Hidden per privacy settings'),
+              subtitle: Text('Verified Professional Email'),
             ),
           ],
         ),
@@ -176,12 +327,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final displayUser = widget.user ?? MockData.currentUser;
-    final isOwner = displayUser.id == MockData.currentUser.id;
-    final isPending = MockData.pendingConnections.contains(displayUser.id);
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    
+    if (_profileUser == null) {
+      return const Scaffold(body: Center(child: Text('Profile not found.')));
+    }
+
+    final displayUser = _profileUser!;
+    final isOwner = displayUser.id == _supabaseService.currentUserId;
+    // For now, connections is simplified. Real logic would query 'connections' table.
+    final isPending = false; 
 
     return Scaffold(
-      backgroundColor: Colors.grey[300], // LinkedIn background style
+      backgroundColor: Colors.grey[300], 
       appBar: AppBar(
         title: Text(displayUser.name, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -191,11 +351,12 @@ class _ProfilePageState extends State<ProfilePage> {
           if (isOwner)
             IconButton(
               icon: const Icon(Icons.settings),
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
+                _loadProfile();
               },
             ),
         ],
@@ -215,10 +376,16 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Banner Image
                       Container(
                         height: 120,
-                        color: Colors.blueGrey[700],
-                        child: const Center(
-                          child: Icon(Icons.wallpaper, color: Colors.white54, size: 48),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey[700],
+                          image: displayUser.bannerUrl != null
+                            ? DecorationImage(image: NetworkImage(displayUser.bannerUrl!), fit: BoxFit.cover)
+                            : null,
                         ),
+                        child: displayUser.bannerUrl == null
+                          ? const Center(child: Icon(Icons.wallpaper, color: Colors.white54, size: 48))
+                          : null,
                       ),
                       // Details under banner
                       Padding(
@@ -309,25 +476,63 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ),
                                   ),
                                 ] else ...[
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          if (isPending) {
-                                            MockData.pendingConnections.remove(displayUser.id);
-                                          } else {
-                                            MockData.pendingConnections.add(displayUser.id);
-                                          }
-                                        });
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isPending ? Colors.grey[300] : Theme.of(context).primaryColor,
-                                        foregroundColor: isPending ? Colors.black54 : Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  if (_connectionStatus == 'accepted')
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        onPressed: null, // Disabled as there's no messaging system
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.grey,
+                                          side: const BorderSide(color: Colors.grey),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        ),
+                                        child: const Text('Connected'),
                                       ),
-                                      child: Text(isPending ? 'Pending' : 'Connect'),
+                                    )
+                                  else if (_connectionStatus == 'sent')
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        onPressed: () async {
+                                          await _supabaseService.cancelConnectionRequest(displayUser.id);
+                                          setState(() => _connectionStatus = null);
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.grey[700],
+                                          side: BorderSide(color: Colors.grey[400]!),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        ),
+                                        child: const Text('Pending'),
+                                      ),
+                                    )
+                                  else if (_connectionStatus == 'received')
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () async {
+                                          await _supabaseService.respondToConnectionRequest(displayUser.id, 'accepted');
+                                          setState(() => _connectionStatus = 'accepted');
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Theme.of(context).primaryColor,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        ),
+                                        child: const Text('Accept'),
+                                      ),
+                                    )
+                                  else
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () async {
+                                          await _supabaseService.sendConnectionRequest(displayUser.id);
+                                          setState(() => _connectionStatus = 'sent');
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Theme.of(context).primaryColor,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        ),
+                                        child: const Text('Connect'),
+                                      ),
                                     ),
-                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: OutlinedButton(
@@ -354,10 +559,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     Positioned(
                       top: 16,
                       right: 16,
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 16,
-                        child: Icon(Icons.camera_alt, color: Theme.of(context).primaryColor, size: 18),
+                      child: InkWell(
+                        onTap: () => _pickAndUploadImage(false),
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white,
+                          radius: 16,
+                          child: Icon(Icons.camera_alt, color: Theme.of(context).primaryColor, size: 18),
+                        ),
                       ),
                     ),
                     
@@ -375,11 +583,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           child: CircleAvatar(
                             radius: 50,
-                            backgroundColor: Colors.blueAccent,
-                            child: Text(
-                              displayUser.name.substring(0, 1),
-                              style: const TextStyle(fontSize: 48, color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
+                            backgroundColor: Colors.primaries[displayUser.name.length % Colors.primaries.length],
+                            backgroundImage: displayUser.avatarUrl != null ? NetworkImage(displayUser.avatarUrl!) : null,
+                            child: displayUser.avatarUrl == null
+                              ? Text(
+                                  displayUser.name.substring(0, 1),
+                                  style: const TextStyle(fontSize: 48, color: Colors.white, fontWeight: FontWeight.bold),
+                                )
+                              : null,
                           ),
                         ),
                         if (displayUser.isOpenToWork)
@@ -392,10 +603,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           Positioned(
                             bottom: 0,
                             right: -5,
-                            child: CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 16,
-                              child: Icon(Icons.add_circle, color: Theme.of(context).primaryColor, size: 32),
+                            child: InkWell(
+                              onTap: () => _pickAndUploadImage(true),
+                              child: CircleAvatar(
+                                backgroundColor: Colors.white,
+                                radius: 16,
+                                child: Icon(Icons.add_circle, color: Theme.of(context).primaryColor, size: 32),
+                              ),
                             ),
                           )
                       ],
@@ -490,7 +704,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           children: [
                             const Text('Current Position', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                             Text(displayUser.title, style: const TextStyle(fontSize: 14)),
-                            const Text('Jan 2021 - Present • 3 yrs 4 mos', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                            const Text('Jan 2021 - Present', style: TextStyle(color: Colors.grey, fontSize: 14)),
                             Text(displayUser.location, style: const TextStyle(color: Colors.grey, fontSize: 14)),
                             const SizedBox(height: 8),
                             Text(
@@ -605,6 +819,41 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(height: 24),
             ],
+            
+            // Activity Section
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Activity', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text('${_userPosts.length} posts', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  if (_userPosts.isEmpty)
+                    const Text('No posts yet.', style: TextStyle(color: Colors.grey))
+                  else
+                    ..._userPosts.map((post) => PostWidget(
+                      post: post,
+                      showMenu: isOwner,
+                      onMenuPressed: () => _showPostOptions(post),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => PostDetailPage(post: post)),
+                        );
+                        _loadPosts();
+                      },
+                      onProfileTap: () {
+                        // Already on profile page, maybe just scroll to top?
+                        // Or do nothing if it's the same user.
+                      },
+                    )),
+                ],
+              ),
+            ),
             
             // Bottom Padding
             const SizedBox(height: 32),

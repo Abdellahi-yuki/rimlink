@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:rimlink/data/mock_data.dart';
+import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
+import 'package:rimlink/ui/widgets/full_screen_image_viewer.dart';
 import 'package:rimlink/ui/profile/profile_page.dart';
 
 class PostDetailPage extends StatefulWidget {
@@ -13,12 +14,36 @@ class PostDetailPage extends StatefulWidget {
 }
 
 class _PostDetailPageState extends State<PostDetailPage> {
+  final SupabaseService _supabaseService = SupabaseService();
   late TextEditingController _commentController;
+  List<Comment> _comments = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _commentController = TextEditingController();
+    _loadComments();
+  }
+
+  Future<void> _loadComments() async {
+    setState(() => _isLoading = true);
+    try {
+      final commentsData = await _supabaseService.getComments(widget.post.id);
+      if (mounted) {
+        setState(() {
+          _comments = commentsData.map((c) {
+            final author = User.fromMap(c['author']);
+            return Comment.fromMap(c, author);
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -27,20 +52,22 @@ class _PostDetailPageState extends State<PostDetailPage> {
     super.dispose();
   }
 
-  void _addComment() {
+  Future<void> _addComment() async {
     if (_commentController.text.trim().isNotEmpty) {
-      setState(() {
-        widget.post.comments.add(
-          Comment(
-            id: 'c_${DateTime.now().millisecondsSinceEpoch}',
-            author: MockData.currentUser,
-            content: _commentController.text.trim(),
-            timeAgo: 'Just now',
-          ),
-        );
-      });
+      final content = _commentController.text.trim();
       _commentController.clear();
       FocusScope.of(context).unfocus();
+      
+      try {
+        await _supabaseService.addComment(widget.post.id, content);
+        _loadComments();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error posting comment: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -75,14 +102,17 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                   MaterialPageRoute(builder: (context) => ProfilePage(user: post.author)),
                                 );
                               },
-                              child: CircleAvatar(
-                                radius: 24,
-                                backgroundColor: Colors.primaries[post.author.name.length % Colors.primaries.length],
-                                child: Text(
-                                  post.author.name.substring(0, 1),
-                                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                                child: CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: Colors.primaries[post.author.name.length % Colors.primaries.length],
+                                  backgroundImage: post.author.avatarUrl != null ? NetworkImage(post.author.avatarUrl!) : null,
+                                  child: post.author.avatarUrl == null
+                                    ? Text(
+                                        post.author.name.substring(0, 1),
+                                        style: const TextStyle(color: Colors.white, fontSize: 20),
+                                      )
+                                    : null,
                                 ),
-                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -118,79 +148,171 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           post.content,
                           style: const TextStyle(fontSize: 16),
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Icon(Icons.thumb_up, color: Color(0xFF0A66C2), size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${post.likesCount}',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        if (post.imageUrls.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: SizedBox(
+                              height: 300,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: post.imageUrls.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => FullScreenImageViewer(
+                                              imageUrls: post.imageUrls,
+                                              initialIndex: index,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(
+                                          post.imageUrls[index],
+                                          height: 300,
+                                          width: post.imageUrls.length == 1 ? MediaQuery.of(context).size.width - 32 : 300,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                            const Spacer(),
-                            Text(
-                              '${post.comments.length} comments',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, thickness: 1),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildActionButton(
+                              icon: post.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                              label: 'Like',
+                              color: post.isLiked ? const Color(0xFF0A66C2) : Colors.grey[600]!,
+                              onTap: () async {
+                                final wasLiked = post.isLiked;
+                                setState(() {
+                                  post.isLiked = !wasLiked;
+                                  post.likesCount += wasLiked ? -1 : 1;
+                                });
+
+                                try {
+                                  await _supabaseService.toggleLike(post.id, wasLiked);
+                                } catch (e) {
+                                  setState(() {
+                                    post.isLiked = wasLiked;
+                                    post.likesCount += wasLiked ? 1 : -1;
+                                  });
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error toggling like: $e')),
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                            _buildActionButton(
+                              icon: Icons.comment_outlined,
+                              label: 'Comment',
+                              onTap: () {
+                                // Focus the comment field
+                                FocusScope.of(context).requestFocus(FocusNode());
+                              },
+                            ),
+                            _buildActionButton(
+                              icon: Icons.repeat,
+                              label: 'Repost',
+                              onTap: () {},
                             ),
                           ],
                         ),
-                        const Divider(height: 24, thickness: 1),
+                        const Divider(height: 1, thickness: 1),
                       ],
                     ),
                   ),
                   
                   // Comments Section
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: post.comments.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final comment = post.comments[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.primaries[comment.author.name.length % Colors.primaries.length],
-                              child: Text(comment.author.name.substring(0, 1), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: const BorderRadius.only(
-                                    topRight: Radius.circular(8),
-                                    bottomLeft: Radius.circular(8),
-                                    bottomRight: Radius.circular(8),
+                  _isLoading 
+                    ? const Center(child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ))
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _comments.length,
+                        separatorBuilder: (context, index) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final comment = _comments[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => ProfilePage(user: comment.author)),
+                                    );
+                                  },
+                                  child: CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: Colors.primaries[comment.author.name.length % Colors.primaries.length],
+                                    backgroundImage: comment.author.avatarUrl != null ? NetworkImage(comment.author.avatarUrl!) : null,
+                                    child: comment.author.avatarUrl == null
+                                      ? Text(comment.author.name.substring(0, 1), style: const TextStyle(color: Colors.white, fontSize: 12))
+                                      : null,
                                   ),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: const BorderRadius.only(
+                                        topRight: Radius.circular(8),
+                                        bottomLeft: Radius.circular(8),
+                                        bottomRight: Radius.circular(8),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(comment.author.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                        Text(comment.timeAgo, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            InkWell(
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => ProfilePage(user: comment.author)),
+                                                );
+                                              },
+                                              child: Text(comment.author.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                            ),
+                                            Text(comment.timeAgo, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                                          ],
+                                        ),
+                                        Text(comment.author.title, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                                        const SizedBox(height: 8),
+                                        Text(comment.content, style: const TextStyle(fontSize: 14)),
                                       ],
                                     ),
-                                    Text(comment.author.title, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
-                                    const SizedBox(height: 8),
-                                    Text(comment.content, style: const TextStyle(fontSize: 14)),
-                                  ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
                 ],
               ),
             ),
@@ -231,6 +353,30 @@ class _PostDetailPageState extends State<PostDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: color ?? Colors.grey[600], size: 20),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(color: color ?? Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }

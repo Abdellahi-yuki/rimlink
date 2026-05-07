@@ -1,3 +1,4 @@
+import 'package:rimlink/models/data_models.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:rimlink/ui/auth/login_signup_page.dart';
