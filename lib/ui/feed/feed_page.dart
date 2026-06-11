@@ -3,6 +3,7 @@ import 'package:rimlink/ui/widgets/post_widget.dart';
 import 'package:rimlink/ui/widgets/full_screen_image_viewer.dart';
 import 'package:rimlink/ui/profile/profile_page.dart';
 import 'package:rimlink/ui/feed/create_post_page.dart';
+import 'package:rimlink/ui/feed/search_page.dart';
 import 'package:rimlink/ui/feed/post_detail_page.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
@@ -57,10 +58,12 @@ class _FeedPageState extends State<FeedPage> {
     return Scaffold(
       backgroundColor: Colors.grey[300], 
       appBar: AppBar(
-        title: const SizedBox(
+        title: SizedBox(
           height: 36,
           child: TextField(
-            decoration: InputDecoration(
+            readOnly: true,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchPage())),
+            decoration: const InputDecoration(
               prefixIcon: Icon(Icons.search, size: 20, color: Colors.black54),
               hintText: 'Search',
               hintStyle: TextStyle(fontSize: 14),

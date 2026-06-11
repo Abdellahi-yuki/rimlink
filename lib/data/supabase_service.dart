@@ -273,6 +273,40 @@ class SupabaseService {
       return null;
     }
   }
+
+  Future<List<User>> searchUsers(String query) async {
+    final List<dynamic> data = await _client
+        .from('profiles')
+        .select()
+        .or('name.ilike.%$query%,title.ilike.%$query%')
+        .limit(20);
+    
+    return data.map<User>((json) => User.fromMap(json)).toList();
+  }
+
+  Future<List<Post>> searchPosts(String query) async {
+    final List<dynamic> data = await _client
+        .from('posts')
+        .select('*, author:profiles!author_id(*)')
+        .ilike('content', '%$query%')
+        .order('created_at', ascending: false)
+        .limit(20);
+
+    final userId = currentUserId;
+    List<String> likedPostIds = [];
+    if (userId != null) {
+      final List<dynamic> likes = await _client
+          .from('likes')
+          .select('post_id')
+          .eq('user_id', userId);
+      likedPostIds = likes.map((l) => l['post_id'] as String).toList();
+    }
+
+    return data.map<Post>((json) {
+      final author = User.fromMap(json['author']);
+      return Post.fromMap(json, author, isLiked: likedPostIds.contains(json['id']));
+    }).toList();
+  }
   // --- Jobs Logic ---
   Future<List<Map<String, dynamic>>> getJobs() async {
     final List<dynamic> data = await _client
