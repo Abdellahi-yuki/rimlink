@@ -1,3 +1,68 @@
+class ContactInfo {
+  String? email;
+  String? phone;
+
+  ContactInfo({this.email, this.phone});
+
+  factory ContactInfo.fromMap(Map<String, dynamic> map) {
+    return ContactInfo(
+      email: map['email'],
+      phone: map['phone'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'email': email,
+      'phone': phone,
+    };
+  }
+}
+
+class Experience {
+  String id;
+  String title;
+  String company;
+  String location;
+  String startDate;
+  String? endDate;
+  String description;
+
+  Experience({
+    required this.id,
+    required this.title,
+    required this.company,
+    required this.location,
+    required this.startDate,
+    this.endDate,
+    required this.description,
+  });
+
+  factory Experience.fromMap(Map<String, dynamic> map) {
+    return Experience(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      company: map['company'] ?? '',
+      location: map['location'] ?? '',
+      startDate: map['start_date'] ?? '',
+      endDate: map['end_date'],
+      description: map['description'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'company': company,
+      'location': location,
+      'start_date': startDate,
+      'end_date': endDate,
+      'description': description,
+    };
+  }
+}
+
 class User {
   final String id;
   String name;
@@ -13,6 +78,8 @@ class User {
   bool isProvidingServices;
   String? avatarUrl;
   String? bannerUrl;
+  String? email;
+  String? phone;
 
   User({
     required this.id,
@@ -29,6 +96,8 @@ class User {
     required this.connections,
     this.avatarUrl,
     this.bannerUrl,
+    this.email,
+    this.phone,
   });
 
   factory User.fromMap(Map<String, dynamic> map) {
@@ -47,6 +116,8 @@ class User {
       isProvidingServices: map['is_providing_services'] ?? false,
       avatarUrl: map['avatar_url'],
       bannerUrl: map['banner_url'],
+      email: map['email'],
+      phone: map['phone'],
     );
   }
 
@@ -64,6 +135,8 @@ class User {
       'is_providing_services': isProvidingServices,
       'avatar_url': avatarUrl,
       'banner_url': bannerUrl,
+      'email': email,
+      'phone': phone,
     };
   }
 }

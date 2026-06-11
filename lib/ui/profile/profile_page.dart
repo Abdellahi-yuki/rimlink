@@ -20,6 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
   User? _profileUser;
   bool _isLoading = true;
   List<Post> _userPosts = [];
+  List<Map<String, dynamic>> _experiences = [];
   String? _connectionStatus; // 'sent', 'received', 'accepted', or null
   final ImagePicker _picker = ImagePicker();
 
@@ -68,6 +69,14 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     
     if (_profileUser != null) {
+      // Load experiences
+      final experiences = await _supabaseService.getExperiences(_profileUser!.id);
+      if (mounted) {
+        setState(() {
+          _experiences = experiences;
+        });
+      }
+      
       await Future.wait([
         _loadPosts(),
         _supabaseService.getConnectionStatus(_profileUser!.id).then((status) {
@@ -196,6 +205,74 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _editContactInfoDialog() {
+    final emailController = TextEditingController(text: _profileUser?.email ?? '');
+    final phoneController = TextEditingController(text: _profileUser?.phone ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Contact Info', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final contactData = {
+                  'email': emailController.text.trim().isEmpty ? null : emailController.text.trim(),
+                  'phone': phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
+                };
+
+                await _supabaseService.updateContactInfo(_profileUser!.id, contactData);
+                await _loadProfile();
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Contact info updated successfully')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating contact info: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddSectionModal(User displayUser) {
     showModalBottomSheet(
       context: context,
@@ -213,7 +290,7 @@ class _ProfilePageState extends State<ProfilePage> {
               title: const Text('Add experience'), 
               onTap: () {
                 Navigator.pop(context);
-                _editFieldDialog('Experience', displayUser.experience, (val) => setState(() => displayUser.experience = val));
+                _editExperienceDialog(null);
               }
             ),
             ListTile(
@@ -234,6 +311,108 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _editExperienceDialog(Map<String, dynamic>? experience) {
+    final titleController = TextEditingController(text: experience?['title'] ?? '');
+    final companyController = TextEditingController(text: experience?['company'] ?? '');
+    final locationController = TextEditingController(text: experience?['location'] ?? '');
+    final startDateController = TextEditingController(text: experience?['start_date'] ?? '');
+    final endDateController = TextEditingController(text: experience?['end_date'] ?? '');
+    final descriptionController = TextEditingController(text: experience?['description'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(experience == null ? 'Add Experience' : 'Edit Experience', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Job Title',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: companyController,
+                decoration: const InputDecoration(
+                  labelText: 'Company',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Location',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: startDateController,
+                decoration: const InputDecoration(
+                  labelText: 'Start Date (e.g., Jan 2020)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: endDateController,
+                decoration: const InputDecoration(
+                  labelText: 'End Date (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.trim().isNotEmpty && companyController.text.trim().isNotEmpty) {
+                final experienceData = {
+                  'title': titleController.text.trim(),
+                  'company': companyController.text.trim(),
+                  'location': locationController.text.trim(),
+                  'start_date': startDateController.text.trim(),
+                  'end_date': endDateController.text.trim().isEmpty ? null : endDateController.text.trim(),
+                  'description': descriptionController.text.trim(),
+                };
+
+                if (experience == null) {
+                  await _supabaseService.addExperience(_profileUser!.id, experienceData);
+                } else {
+                  await _supabaseService.updateExperience(experience['id'], experienceData);
+                }
+
+                _loadProfile();
+                if (mounted) Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -301,7 +480,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _showContactInfoModal(User displayUser) {
+  void _showContactInfoModal(User displayUser, bool isOwner) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -311,14 +490,40 @@ class _ProfilePageState extends State<ProfilePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(displayUser.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(displayUser.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                if (isOwner)
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.grey),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _editContactInfoDialog();
+                    },
+                  ),
+              ],
+            ),
             const SizedBox(height: 16),
 
-            const ListTile(
-              leading: Icon(Icons.email, color: Colors.grey),
-              title: Text('Email'),
-              subtitle: Text('Verified Professional Email'),
-            ),
+            if (displayUser.email != null && displayUser.email!.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.email, color: Colors.grey),
+                title: const Text('Email'),
+                subtitle: Text(displayUser.email!),
+              ),
+            if (displayUser.phone != null && displayUser.phone!.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.phone, color: Colors.grey),
+                title: const Text('Phone'),
+                subtitle: Text(displayUser.phone!),
+              ),
+            if ((displayUser.email == null || displayUser.email!.isEmpty) && 
+                (displayUser.phone == null || displayUser.phone!.isEmpty))
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('No contact information available', style: TextStyle(color: Colors.grey)),
+              ),
           ],
         ),
       ),
@@ -418,13 +623,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                             style: const TextStyle(color: Colors.grey, fontSize: 14),
                                           ),
                                           const SizedBox(width: 8),
-                                          InkWell(
-                                            onTap: () => _showContactInfoModal(displayUser),
-                                            child: const Text(
-                                              'Contact info',
-                                              style: TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
-                                            ),
-                                          ),
+                                           InkWell(
+                                             onTap: () => _showContactInfoModal(displayUser, isOwner),
+                                             child: const Text(
+                                               'Contact info',
+                                               style: TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
+                                             ),
+                                           ),
                                         ],
                                       ),
                                       const SizedBox(height: 12),
@@ -536,7 +741,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: OutlinedButton(
-                                      onPressed: () => _showContactInfoModal(displayUser),
+                                       onPressed: () => _showContactInfoModal(displayUser, isOwner),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: Theme.of(context).primaryColor,
                                         side: BorderSide(color: Theme.of(context).primaryColor),
@@ -648,7 +853,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    displayUser.about.isEmpty ? "Add your summary here." : displayUser.about,
+                    displayUser.about.isEmpty ? (isOwner ? "Add your summary here." : "Nothing in the About section") : displayUser.about,
                     style: TextStyle(fontSize: 14, height: 1.5, color: displayUser.about.isEmpty ? Colors.grey : Colors.black),
                   ),
                 ],
@@ -674,48 +879,34 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (isOwner)
                         Row(
                           children: [
-                            IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddSectionModal(displayUser)),
                             IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.grey),
-                              onPressed: () {
-                                _editFieldDialog('Experience', displayUser.experience, (newVal) {
-                                  setState(() => displayUser.experience = newVal);
-                                });
-                              },
+                              icon: const Icon(Icons.add),
+                              onPressed: () => _showAddSectionModal(displayUser),
                             ),
                           ],
                         )
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.business, color: Colors.grey),
+                  
+                  // Display experiences from the new experiences table
+                  if (_experiences.isNotEmpty)
+                    ..._experiences.map((exp) => Column(
+                      children: [
+                        _buildExperienceItem(exp, isOwner),
+                        const SizedBox(height: 16),
+                        if (_experiences.last != exp) const Divider(),
+                      ],
+                    )).toList(),
+                  
+                  if (_experiences.isEmpty && isOwner)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'No experience added yet.',
+                        style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Current Position', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            Text(displayUser.title, style: const TextStyle(fontSize: 14)),
-                            const Text('Jan 2021 - Present', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                            Text(displayUser.location, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                            const SizedBox(height: 8),
-                            Text(
-                              displayUser.experience.isEmpty ? 'No experience details available.' : displayUser.experience,
-                              style: TextStyle(fontSize: 14, height: 1.5, color: displayUser.experience.isEmpty ? Colors.grey : Colors.black),
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
@@ -860,6 +1051,90 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
+    );
+  }
+
+  // Helper widget to render experience items
+  Widget _buildExperienceItem(Map<String, dynamic> experience, bool isOwner) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          color: Colors.grey[300],
+          child: const Icon(Icons.business, color: Colors.grey),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(experience['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  if (isOwner)
+                    PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Edit', style: TextStyle(fontSize: 14)),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete', style: TextStyle(fontSize: 14, color: Colors.red)),
+                        ),
+                      ],
+                      onSelected: (value) async {
+                        if (value == 'edit') {
+                          _editExperienceDialog(experience);
+                        } else if (value == 'delete') {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete experience'),
+                              content: const Text('Are you sure you want to delete this experience?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await _supabaseService.deleteExperience(experience['id']);
+                            _loadProfile();
+                          }
+                        }
+                      },
+                    ),
+                ],
+              ),
+              Text(experience['company'], style: const TextStyle(fontSize: 14)),
+              Text(
+                '${experience['start_date']} - ${experience['end_date'] ?? 'Present'}',
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              if (experience['location'] != null && experience['location'].isNotEmpty)
+                Text(experience['location'], style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 8),
+              if (experience['description'] != null && experience['description'].isNotEmpty)
+                Text(
+                  experience['description'],
+                  style: const TextStyle(fontSize: 14, height: 1.5, color: Colors.black),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

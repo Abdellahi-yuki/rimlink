@@ -1,17 +1,53 @@
-# rimlink
+# RimLink
 
-A new Flutter project.
+**A LinkedIn-inspired professional networking mobile application built with Flutter and Supabase.**
 
-## Getting Started
+## 🚀 Quick Start
 
-This project is a starting point for a Flutter application.
+### Prerequisites
+- Flutter SDK (3.0+)
+- Supabase account
+- Android device/emulator
 
-A few resources to get you started if this is your first Flutter project:
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/rimlink.git
+cd rimlink
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+# Install dependencies
+flutter pub get
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Run the app
+flutter run
+```
+
+## 📱 Features
+- **User Profiles**: Professional profiles with photos, banners, and status
+- **Posts & Content**: Create, edit, like, and comment on posts
+- **Networking**: Search users, send/accept connection requests
+- **Experience Management**: Add multiple work experiences and education
+- **Contact Info**: Share email/phone with privacy controls
+- **Authentication**: Secure login and registration
+
+## 🛠️ Technologies
+- **Frontend**: Flutter (Dart)
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
+- **State Management**: Provider
+- **UI**: Material Design
+
+## ⚙️ Configuration
+1. Create `.env` file with Supabase credentials:
+```
+SUPABASE_URL=your-project-url
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+2. Set up Supabase:
+- Enable Email Authentication
+- Import database schema from `schema.sql`
+- Configure Row Level Security (RLS)
+
+## 📚 Documentation
+For comprehensive documentation, see [DOCUMENTATION.md](DOCUMENTATION.md)
+

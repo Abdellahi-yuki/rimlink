@@ -6,6 +6,8 @@ import 'package:rimlink/models/data_models.dart';
 class SupabaseService {
   final sb.SupabaseClient _client = sb.Supabase.instance.client;
 
+
+
   // --- Auth Helpers ---
   sb.User? get currentAuthUser => _client.auth.currentUser;
 
@@ -16,23 +18,89 @@ class SupabaseService {
     final id = currentUserId;
     if (id == null) return null;
 
-    final data = await _client
-        .from('profiles')
-        .select()
-        .eq('id', id)
-        .single();
+    debugPrint('Loading profile for current user: $id');
     
-    return User.fromMap(data);
+    try {
+      final data = await _client
+          .from('profiles')
+          .select('*, contact_info(*)')
+          .eq('id', id)
+          .single();
+      
+      debugPrint('Profile data retrieved: ${data.keys}');
+      debugPrint('Contact info data: ${data['contact_info']}');
+      
+      // Extract contact info - it's a one-to-one relationship
+      Map<String, dynamic>? contactData;
+      if (data['contact_info'] != null) {
+        if (data['contact_info'] is List && (data['contact_info'] as List).isNotEmpty) {
+          contactData = (data['contact_info'] as List).first as Map<String, dynamic>;
+        } else if (data['contact_info'] is Map<String, dynamic>) {
+          contactData = data['contact_info'] as Map<String, dynamic>;
+        }
+        debugPrint('Extracted contact data: $contactData');
+      }
+
+      // Create user map without the nested contact_info to avoid conflicts
+      final userMap = {
+        ...data,
+        'email': contactData?['email'],
+        'phone': contactData?['phone'],
+      };
+      
+      // Remove the nested contact_info to prevent conflicts in User.fromMap
+      userMap.remove('contact_info');
+      
+      debugPrint('User map with contact info: $userMap');
+      
+      final user = User.fromMap(userMap);
+      debugPrint('User email: ${user.email}, phone: ${user.phone}');
+      return user;
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
+      return null;
+    }
   }
 
   Future<User?> getProfileById(String id) async {
-    final data = await _client
-        .from('profiles')
-        .select()
-        .eq('id', id)
-        .single();
-    
-    return User.fromMap(data);
+    try {
+      final data = await _client
+          .from('profiles')
+          .select('*, contact_info(*)')
+          .eq('id', id)
+          .single();
+      
+      debugPrint('Profile data retrieved for $id: ${data.keys}');
+      debugPrint('Contact info data for $id: ${data['contact_info']}');
+      
+      // Extract contact info - it's a one-to-one relationship
+      Map<String, dynamic>? contactData;
+      if (data['contact_info'] != null) {
+        if (data['contact_info'] is List && (data['contact_info'] as List).isNotEmpty) {
+          contactData = (data['contact_info'] as List).first as Map<String, dynamic>;
+        } else if (data['contact_info'] is Map<String, dynamic>) {
+          contactData = data['contact_info'] as Map<String, dynamic>;
+        }
+        debugPrint('Extracted contact data for $id: $contactData');
+      }
+
+      // Create user map without the nested contact_info to avoid conflicts
+      final userMap = {
+        ...data,
+        'email': contactData?['email'],
+        'phone': contactData?['phone'],
+      };
+      
+      // Remove the nested contact_info to prevent conflicts in User.fromMap
+      userMap.remove('contact_info');
+      
+      final user = User.fromMap(userMap);
+      debugPrint('User $id email: ${user.email}, phone: ${user.phone}');
+      return user;
+    } catch (e) {
+      debugPrint('Error loading profile for $id: $e');
+      return null;
+    }
   }
 
   Future<void> updateProfile(User user) async {
@@ -46,6 +114,39 @@ class SupabaseService {
     final userId = currentUserId;
     if (userId == null) return;
     await _client.from('profiles').update({field: value}).eq('id', userId);
+  }
+
+
+
+  Future<void> addExperience(String userId, Map<String, dynamic> experienceData) async {
+    await _client.from('experiences').insert({
+      ...experienceData,
+      'user_id': userId,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getExperiences(String userId) async {
+    final List<dynamic> data = await _client
+        .from('experiences')
+        .select()
+        .eq('user_id', userId)
+        .order('start_date', ascending: false);
+    
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<void> updateExperience(String experienceId, Map<String, dynamic> experienceData) async {
+    await _client
+        .from('experiences')
+        .update(experienceData)
+        .eq('id', experienceId);
+  }
+
+  Future<void> deleteExperience(String experienceId) async {
+    await _client
+        .from('experiences')
+        .delete()
+        .eq('id', experienceId);
   }
 
   Future<String> uploadImage(String path, List<int> bytes) async {
@@ -346,6 +447,57 @@ class SupabaseService {
     }
   }
 
+  Future<Map<String, dynamic>?> getContactInfo(String userId) async {
+    try {
+      final data = await _client
+          .from('contact_info')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+      
+      debugPrint('Contact info retrieved: $data');
+      return data;
+    } catch (e) {
+      debugPrint('Error getting contact info: $e');
+      return null;
+    }
+  }
+
+  Future<void> updateContactInfo(String userId, Map<String, dynamic> contactData) async {
+    try {
+      debugPrint('Updating contact info for user $userId with data: $contactData');
+      
+      // Clean contact data - remove null values
+      final cleanedData = Map<String, dynamic>.from(contactData);
+      cleanedData.removeWhere((key, value) => value == null || value.toString().isEmpty);
+      
+      debugPrint('Cleaned contact data: $cleanedData');
+      
+      // Check if contact info exists
+      final existing = await getContactInfo(userId);
+      debugPrint('Existing contact info: $existing');
+      
+      if (existing == null) {
+        // Insert new contact info
+        debugPrint('Inserting new contact info');
+        await _client.from('contact_info').insert({
+          'user_id': userId,
+          ...cleanedData,
+        });
+      } else {
+        // Update existing contact info
+        debugPrint('Updating existing contact info');
+        await _client
+            .from('contact_info')
+            .update(cleanedData)
+            .eq('user_id', userId);
+      }
+    } catch (e) {
+      debugPrint('Error updating contact info: $e');
+      rethrow;
+    }
+  }
+
   // --- Comments Logic ---
   Future<List<Map<String, dynamic>>> getComments(String postId) async {
     final List<dynamic> data = await _client
@@ -366,6 +518,54 @@ class SupabaseService {
       'author_id': userId,
       'content': content,
     });
+  }
+
+  Future<void> updateComment(String commentId, String content) async {
+    try {
+      debugPrint('Updating comment $commentId with content: $content');
+      
+      final currentUserId = this.currentUserId;
+      if (currentUserId == null) {
+        throw Exception('User not authenticated');
+      }
+      
+      // Use RPC to bypass RLS restrictions
+      final response = await _client.rpc('update_comment_content', params: {
+        'comment_id': commentId,
+        'new_content': content,
+        'user_id': currentUserId
+      });
+      
+      debugPrint('Comment update RPC response: $response');
+      
+      // Check if the RPC call was successful (PostgrestResponse with data)
+      if (response == null || response.data == null) {
+        // For void functions, we need to check if there was an error
+        if (response?.error != null) {
+          throw Exception(response.error!.message);
+        }
+        // If no error and no data, assume success for void functions
+      }
+    } catch (e) {
+      debugPrint('Error updating comment $commentId: $e');
+      // Clean up error message for user
+      String errorMessage = e.toString();
+      if (errorMessage.contains('User does not own this comment')) {
+        errorMessage = 'You can only edit your own comments';
+      } else if (errorMessage.contains('does not exist')) {
+        errorMessage = 'Comment not found';
+      } else if (errorMessage.contains('Exception:')) {
+        errorMessage = errorMessage.replaceAll('Exception: ', '');
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
+  Future<void> deleteComment(String commentId) async {
+    await _client
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
   }
 
   // --- Connection Requests Logic ---

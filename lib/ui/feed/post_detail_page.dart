@@ -71,6 +71,68 @@ class _PostDetailPageState extends State<PostDetailPage> {
     }
   }
 
+   void _editCommentDialog(Comment comment) {
+     final controller = TextEditingController(text: comment.content);
+     showDialog(
+       context: context,
+       builder: (context) => AlertDialog(
+         title: const Text('Edit Comment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+         content: TextField(
+           controller: controller,
+           maxLines: 3,
+           decoration: const InputDecoration(
+             border: OutlineInputBorder(),
+             hintText: 'Edit your comment',
+           ),
+         ),
+         actions: [
+           TextButton(
+             onPressed: () => Navigator.pop(context),
+             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+           ),
+           ElevatedButton(
+             onPressed: () async {
+               if (controller.text.trim().isNotEmpty) {
+                 try {
+                   await _supabaseService.updateComment(comment.id, controller.text.trim());
+                   
+                   // Update the comment in the local list immediately
+                   setState(() {
+                     final index = _comments.indexWhere((c) => c.id == comment.id);
+                     if (index != -1) {
+                       _comments[index] = Comment(
+                         id: comment.id,
+                         author: comment.author,
+                         content: controller.text.trim(),
+                         createdAt: comment.createdAt,
+                       );
+                     }
+                   });
+                   
+                   if (mounted) {
+                     Navigator.pop(context);
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       const SnackBar(content: Text('Comment updated successfully')),
+                     );
+                   }
+                 } catch (e) {
+                   if (mounted) {
+                     Navigator.pop(context);
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+                     );
+                   }
+                 }
+               }
+             },
+             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+             child: const Text('Save', style: TextStyle(color: Colors.white)),
+           ),
+         ],
+       ),
+     );
+   }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
@@ -298,7 +360,54 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                               },
                                               child: Text(comment.author.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                             ),
-                                            Text(comment.timeAgo, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                                            Row(
+                                              children: [
+                                                Text(comment.timeAgo, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                                                const SizedBox(width: 8),
+                                                if (comment.author.id == SupabaseService().currentUserId)
+                                                  PopupMenuButton<String>(
+                                                    padding: EdgeInsets.zero,
+                                                    icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
+                                                    itemBuilder: (context) => [
+                                                      const PopupMenuItem(
+                                                        value: 'edit',
+                                                        child: Text('Edit', style: TextStyle(fontSize: 14)),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'delete',
+                                                        child: Text('Delete', style: TextStyle(fontSize: 14, color: Colors.red)),
+                                                      ),
+                                                    ],
+                                                    onSelected: (value) async {
+                                                      if (value == 'edit') {
+                                                        _editCommentDialog(comment);
+                                                      } else if (value == 'delete') {
+                                                        final confirm = await showDialog<bool>(
+                                                          context: context,
+                                                          builder: (context) => AlertDialog(
+                                                            title: const Text('Delete comment'),
+                                                            content: const Text('Are you sure you want to delete this comment?'),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () => Navigator.pop(context, false),
+                                                                child: const Text('Cancel'),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed: () => Navigator.pop(context, true),
+                                                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                        if (confirm == true) {
+                                                          await _supabaseService.deleteComment(comment.id);
+                                                          _loadComments();
+                                                        }
+                                                      }
+                                                    },
+                                                  ),
+                                              ],
+                                            ),
                                           ],
                                         ),
                                         Text(comment.author.title, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
