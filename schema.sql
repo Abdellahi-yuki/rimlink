@@ -413,6 +413,11 @@ USING (
 
 CREATE POLICY "Users manage their experiences." ON "public"."experiences" USING (("auth"."uid"() = "user_id"));
 
+-- Allow read access to all experiences
+CREATE POLICY "Users can view all experiences." ON "public"."experiences" 
+FOR SELECT 
+USING (true);
+
 
 
 ALTER TABLE "public"."comments" ENABLE ROW LEVEL SECURITY;
