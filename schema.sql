@@ -469,6 +469,9 @@ CREATE POLICY "Users can cancel their own pending requests." ON "public"."connec
 CREATE POLICY "Users can delete own posts." ON "public"."posts" FOR DELETE USING (("auth"."uid"() = "author_id"));
 
 
+CREATE POLICY "Users can update own posts." ON "public"."posts" FOR UPDATE USING (("auth"."uid"() = "author_id"));
+
+
 
 CREATE POLICY "Users can insert their own comments." ON "public"."comments" FOR INSERT WITH CHECK (("auth"."uid"() = "author_id"));
 

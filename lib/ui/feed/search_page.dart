@@ -21,12 +21,14 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
   List<User> _userResults = [];
   List<Post> _postResults = [];
   bool _isLoading = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _searchController.text = widget.initialQuery;
+    _currentUserId = _supabaseService.currentUserId;
     if (widget.initialQuery.isNotEmpty) {
       _performSearch(widget.initialQuery);
     }
@@ -56,6 +58,75 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
+  }
+
+  void _showPostOptions(Post post) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Edit post'),
+            onTap: () {
+              Navigator.pop(context);
+              _editPostDialog(post);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete post', style: TextStyle(color: Colors.red)),
+            onTap: () async {
+              Navigator.pop(context);
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete post'),
+                  content: const Text('Are you sure you want to delete this post?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await _supabaseService.deletePost(post.id);
+                setState(() => _postResults.removeWhere((p) => p.id == post.id));
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editPostDialog(Post post) {
+    final controller = TextEditingController(text: post.content);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Post'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Write something...'),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.trim().isEmpty) return;
+              await _supabaseService.updatePostContent(post.id, controller.text.trim());
+              if (context.mounted) Navigator.pop(context);
+              _performSearch(_searchController.text);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -152,6 +223,8 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
         final post = _postResults[index];
         return PostWidget(
           post: post,
+          showMenu: post.author.id == _currentUserId,
+          onMenuPressed: post.author.id == _currentUserId ? () => _showPostOptions(post) : null,
           onTap: () {
             Navigator.push(
               context,
