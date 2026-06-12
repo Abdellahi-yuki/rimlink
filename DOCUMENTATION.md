@@ -2,7 +2,8 @@
 
 RimLink is a professional networking mobile application inspired by LinkedIn, designed for Android platforms. It provides users with the ability to connect, share posts, manage professional profiles, and build their professional network.
 
-![RimLink Logo](https://via.placeholder.com/150x150?text=RimLink+Logo)
+- **Package**: `com.rimlink.app`
+- **Min SDK**: Android 21
 
 ## 📋 Table of Contents
 - [Features](#-features)
@@ -494,19 +495,32 @@ SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ### Build Configuration
-Update `android/app/build.gradle` with your application details:
 
-```gradle
-android {
-    defaultConfig {
-        applicationId "com.example.rimlink"
-        minSdkVersion 21
-        targetSdkVersion 33
-        versionCode 1
-        versionName "1.0"
-    }
+Android configuration is in `android/app/build.gradle.kts`:
+
+```kotlin
+defaultConfig {
+    applicationId = "com.rimlink.app"
+    minSdk = 21
+    targetSdk = flutter.targetSdkVersion
+    versionCode = flutter.versionCode
+    versionName = flutter.versionName
 }
 ```
+
+### App Icons
+
+Icons are generated from `icon.png` using `flutter_launcher_icons`. To regenerate:
+
+```bash
+dart run flutter_launcher_icons
+```
+
+Configuration is in `flutter_launcher_icons.yaml`.
+
+### Migrations
+
+Database migrations are in `supabase/migrations/`. Apply them in order via the Supabase SQL editor.
 
 ---
 

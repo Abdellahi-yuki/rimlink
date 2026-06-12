@@ -112,25 +112,31 @@ ALTER FUNCTION "public"."update_comment_content"("comment_id" "uuid", "new_conte
 
 CREATE OR REPLACE FUNCTION "public"."update_connections_count"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO ''
     AS $$
 BEGIN
-  IF TG_OP = 'INSERT' AND NEW.status = 'accepted' THEN
-    UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.requester_id;
-    UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.receiver_id;
-  ELSIF TG_OP = 'UPDATE' THEN
-    IF OLD.status != 'accepted' AND NEW.status = 'accepted' THEN
-      UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.requester_id;
-      UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.receiver_id;
-    ELSIF OLD.status = 'accepted' AND NEW.status != 'accepted' THEN
-      UPDATE public.profiles SET connections = connections - 1 WHERE id = NEW.requester_id;
-      UPDATE public.profiles SET connections = connections - 1 WHERE id = NEW.receiver_id;
-    END IF;
-  ELSIF TG_OP = 'DELETE' AND OLD.status = 'accepted' THEN
-    UPDATE public.profiles SET connections = connections - 1 WHERE id = OLD.requester_id;
-    UPDATE public.profiles SET connections = connections - 1 WHERE id = OLD.receiver_id;
+  -- When a connection is accepted, increment connections count for both users
+  IF NEW.status = 'accepted' THEN
+    UPDATE "public"."profiles"
+    SET connections = connections + 1
+    WHERE id = NEW.requester_id;
+
+    UPDATE "public"."profiles"
+    SET connections = connections + 1
+    WHERE id = NEW.receiver_id;
   END IF;
-  RETURN NULL;
+
+  -- When a connection is deleted, decrement connections count for both users
+  IF TG_OP = 'DELETE' AND OLD.status = 'accepted' THEN
+    UPDATE "public"."profiles"
+    SET connections = connections - 1
+    WHERE id = OLD.requester_id;
+
+    UPDATE "public"."profiles"
+    SET connections = connections - 1
+    WHERE id = OLD.receiver_id;
+  END IF;
+
+  RETURN NEW;
 END;
 $$;
 
@@ -165,9 +171,6 @@ CREATE TABLE IF NOT EXISTS "public"."connections" (
 
 
 ALTER TABLE "public"."connections" OWNER TO "postgres";
-
-
-CREATE TRIGGER "connections_count_trigger" AFTER INSERT OR UPDATE OR DELETE ON "public"."connections" FOR EACH ROW EXECUTE FUNCTION "public"."update_connections_count"();
 
 
 CREATE TABLE IF NOT EXISTS "public"."contact_info" (
@@ -352,6 +355,14 @@ CREATE INDEX "idx_experiences_user_id" ON "public"."experiences" USING "btree" (
 
 
 
+CREATE OR REPLACE TRIGGER "update_connections_count_on_delete" AFTER DELETE ON "public"."connections" FOR EACH ROW EXECUTE FUNCTION "public"."update_connections_count"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_connections_count_on_update" AFTER UPDATE ON "public"."connections" FOR EACH ROW EXECUTE FUNCTION "public"."update_connections_count"();
+
+
+
 ALTER TABLE ONLY "public"."comments"
     ADD CONSTRAINT "comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
@@ -405,6 +416,8 @@ ALTER TABLE ONLY "public"."post_likes"
 ALTER TABLE ONLY "public"."posts"
     ADD CONSTRAINT "posts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
+
+
 ALTER TABLE ONLY "public"."posts"
     ADD CONSTRAINT "posts_repost_of_id_fkey" FOREIGN KEY ("repost_of_id") REFERENCES "public"."posts"("id") ON DELETE SET NULL;
 
@@ -449,6 +462,10 @@ CREATE POLICY "Users can accept/reject requests sent to them." ON "public"."conn
 
 
 
+CREATE POLICY "Users can cancel their own pending requests." ON "public"."connections" FOR DELETE USING ((("auth"."uid"() = "requester_id") AND ("status" = 'pending'::"text")));
+
+
+
 CREATE POLICY "Users can delete own posts." ON "public"."posts" FOR DELETE USING (("auth"."uid"() = "author_id"));
 
 
@@ -480,10 +497,8 @@ CREATE POLICY "Users can manage their saved jobs." ON "public"."saved_jobs" USIN
 CREATE POLICY "Users can see their own connections." ON "public"."connections" FOR SELECT USING ((("auth"."uid"() = "requester_id") OR ("auth"."uid"() = "receiver_id")));
 
 
+
 CREATE POLICY "Users can send connection requests." ON "public"."connections" FOR INSERT WITH CHECK (("auth"."uid"() = "requester_id"));
-
-
-CREATE POLICY "Users can cancel their own pending requests." ON "public"."connections" FOR DELETE USING ((("auth"."uid"() = "requester_id") AND ("status" = 'pending'::"text")));
 
 
 
@@ -725,6 +740,12 @@ GRANT ALL ON FUNCTION "public"."increment_likes"("post_id" "uuid") TO "service_r
 GRANT ALL ON FUNCTION "public"."update_comment_content"("comment_id" "uuid", "new_content" "text", "user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."update_comment_content"("comment_id" "uuid", "new_content" "text", "user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_comment_content"("comment_id" "uuid", "new_content" "text", "user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_connections_count"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_connections_count"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_connections_count"() TO "service_role";
 
 
 
