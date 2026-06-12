@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/ui/widgets/full_screen_image_viewer.dart';
@@ -64,7 +65,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error posting comment: $e')),
+            SnackBar(content: Text('${AppLocalizations.of(context)!.errorPostingComment}: $e')),
           );
         }
       }
@@ -76,19 +77,19 @@ class _PostDetailPageState extends State<PostDetailPage> {
      showDialog(
        context: context,
        builder: (context) => AlertDialog(
-         title: const Text('Edit Comment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-         content: TextField(
-           controller: controller,
-           maxLines: 3,
-           decoration: const InputDecoration(
-             border: OutlineInputBorder(),
-             hintText: 'Edit your comment',
+      title: Text(AppLocalizations.of(context)!.editComment, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      content: TextField(
+        controller: controller,
+        maxLines: 3,
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          hintText: AppLocalizations.of(context)!.editYourComment,
            ),
          ),
          actions: [
            TextButton(
              onPressed: () => Navigator.pop(context),
-             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+             child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
            ),
            ElevatedButton(
              onPressed: () async {
@@ -112,21 +113,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
                    if (mounted) {
                      Navigator.pop(context);
                      ScaffoldMessenger.of(context).showSnackBar(
-                       const SnackBar(content: Text('Comment updated successfully')),
+                       SnackBar(content: Text(AppLocalizations.of(context)!.commentUpdated)),
                      );
                    }
                  } catch (e) {
                    if (mounted) {
                      Navigator.pop(context);
                      ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+                        SnackBar(content: Text('${AppLocalizations.of(context)!.error}: ${e.toString().replaceAll('Exception: ', '')}')),
                      );
                    }
                  }
                }
              },
              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-             child: const Text('Save', style: TextStyle(color: Colors.white)),
+             child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
            ),
          ],
        ),
@@ -140,7 +141,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Post'),
+        title: Text(AppLocalizations.of(context)!.postDetail),
       ),
       body: Column(
         children: [
@@ -255,7 +256,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           children: [
                             _buildActionButton(
                               icon: post.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                              label: 'Like',
+                              label: AppLocalizations.of(context)!.like,
                               color: post.isLiked ? const Color(0xFF0A66C2) : Colors.grey[600]!,
                               onTap: () async {
                                 final wasLiked = post.isLiked;
@@ -273,7 +274,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                   });
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error toggling like: $e')),
+                                      SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
                                     );
                                   }
                                 }
@@ -281,7 +282,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             ),
                             _buildActionButton(
                               icon: Icons.comment_outlined,
-                              label: 'Comment',
+                              label: AppLocalizations.of(context)!.comment,
                               onTap: () {
                                 // Focus the comment field
                                 FocusScope.of(context).requestFocus(FocusNode());
@@ -289,7 +290,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             ),
                             _buildActionButton(
                               icon: Icons.repeat,
-                              label: 'Repost',
+                              label: AppLocalizations.of(context)!.repost,
                               onTap: () {},
                             ),
                           ],
@@ -369,13 +370,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                                     padding: EdgeInsets.zero,
                                                     icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
                                                     itemBuilder: (context) => [
-                                                      const PopupMenuItem(
+                                                      PopupMenuItem(
                                                         value: 'edit',
-                                                        child: Text('Edit', style: TextStyle(fontSize: 14)),
+                                                        child: Text(AppLocalizations.of(context)!.edit, style: const TextStyle(fontSize: 14)),
                                                       ),
-                                                      const PopupMenuItem(
+                                                      PopupMenuItem(
                                                         value: 'delete',
-                                                        child: Text('Delete', style: TextStyle(fontSize: 14, color: Colors.red)),
+                                                        child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(fontSize: 14, color: Colors.red)),
                                                       ),
                                                     ],
                                                     onSelected: (value) async {
@@ -385,16 +386,16 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                                         final confirm = await showDialog<bool>(
                                                           context: context,
                                                           builder: (context) => AlertDialog(
-                                                            title: const Text('Delete comment'),
-                                                            content: const Text('Are you sure you want to delete this comment?'),
+                                                            title: Text(AppLocalizations.of(context)!.deleteComment),
+                                                            content: Text(AppLocalizations.of(context)!.deleteCommentConfirm),
                                                             actions: [
                                                               TextButton(
                                                                 onPressed: () => Navigator.pop(context, false),
-                                                                child: const Text('Cancel'),
+                                                                child: Text(AppLocalizations.of(context)!.cancel),
                                                               ),
                                                               TextButton(
                                                                 onPressed: () => Navigator.pop(context, true),
-                                                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                                                child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red)),
                                                               ),
                                                             ],
                                                           ),
@@ -441,7 +442,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     child: TextField(
                       controller: _commentController,
                       decoration: InputDecoration(
-                        hintText: 'Leave a comment',
+                        hintText: AppLocalizations.of(context)!.leaveComment,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,

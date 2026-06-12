@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -37,49 +38,49 @@ class _JobDetailPageState extends State<JobDetailPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Job', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          title: Text(AppLocalizations.of(context)!.editJob, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Job Title',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.jobTitle,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: companyController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.companyName,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Location (e.g., Remote, New York, NY)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.locationPlaceholder,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: descriptionController,
                   maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'Job Description',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.jobDescription,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: applyLinkController,
-                  decoration: const InputDecoration(
-                    labelText: 'Apply Link (URL)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.applyLink,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -89,7 +90,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                       value: isPromoted,
                       onChanged: (val) => setState(() => isPromoted = val ?? false),
                     ),
-                    const Text('Promoted Job'),
+                    Text(AppLocalizations.of(context)!.promotedJob),
                   ],
                 ),
               ],
@@ -98,7 +99,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -122,7 +123,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Job updated successfully!')),
+                        SnackBar(content: Text(AppLocalizations.of(context)!.jobUpdated)),
                       );
                       setState(() {}); // Refresh UI
                     }
@@ -130,14 +131,14 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error updating job: $e')),
+                        SnackBar(content: Text('${AppLocalizations.of(context)!.errorUpdatingJob}: $e')),
                       );
                     }
                   }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -152,7 +153,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
       launch(widget.job.applyLink);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No application link provided.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.noApplyLink)),
       );
     }
   }

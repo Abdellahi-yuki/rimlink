@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/ui/widgets/full_screen_image_viewer.dart';
@@ -77,7 +78,7 @@ class _PostWidgetState extends State<PostWidget> {
                         Icon(Icons.repeat, size: 14, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
-                          '${post.author.name} reposted',
+                          AppLocalizations.of(context)!.reposted(post.author.name),
                           style: TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
@@ -202,7 +203,7 @@ class _PostWidgetState extends State<PostWidget> {
                     ),
                     const Spacer(),
                     Text(
-                      '${post.commentsCount} comments',
+                      AppLocalizations.of(context)!.commentsCount(post.commentsCount),
                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
@@ -217,7 +218,7 @@ class _PostWidgetState extends State<PostWidget> {
                 children: [
                   _buildActionButton(
                     icon: post.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                    label: 'Like',
+                    label: AppLocalizations.of(context)!.like,
                     color: post.isLiked ? const Color(0xFF0A66C2) : Colors.grey[600]!,
                     onTap: () async {
                       final wasLiked = post.isLiked;
@@ -235,7 +236,7 @@ class _PostWidgetState extends State<PostWidget> {
                         });
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error toggling like: $e')),
+                            SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
                           );
                         }
                       }
@@ -243,13 +244,13 @@ class _PostWidgetState extends State<PostWidget> {
                   ),
                   _buildActionButton(
                     icon: Icons.comment_outlined,
-                    label: 'Comment',
+                    label: AppLocalizations.of(context)!.comment,
                     color: Colors.grey[600]!,
                     onTap: widget.onTap ?? () {},
                   ),
                   _buildActionButton(
                     icon: Icons.repeat,
-                    label: 'Repost',
+                    label: AppLocalizations.of(context)!.repost,
                     color: Colors.grey[600]!,
                     onTap: widget.onRepost ?? () {},
                   ),

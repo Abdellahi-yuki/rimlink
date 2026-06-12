@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
   final List<String> imageUrls;
@@ -39,7 +40,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          '${_currentIndex + 1} / ${widget.imageUrls.length}',
+          AppLocalizations.of(context)!.imageCounter(_currentIndex + 1, widget.imageUrls.length),
           style: const TextStyle(color: Colors.white),
         ),
       ),

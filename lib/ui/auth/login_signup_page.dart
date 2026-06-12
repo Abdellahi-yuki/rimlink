@@ -1,6 +1,7 @@
 import 'package:rimlink/models/data_models.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/ui/main_navigation.dart';
 
 class LoginSignupPage extends StatefulWidget {
@@ -54,14 +55,14 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please check your inbox to confirm your email address!')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.checkEmail)),
         );
       }
     } on AuthException catch (e) {
       if (!mounted) return;
       String message = e.message;
       if (message.contains('Invalid login credentials')) {
-        message = 'These credentials do not exist in the records.';
+        message = AppLocalizations.of(context)!.invalidCredentials;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
@@ -69,7 +70,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An unexpected error occurred.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.unexpectedError)),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -94,11 +95,11 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
             children: [
               const SizedBox(height: 48),
               // App Logo placeholder
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'RimLink',
+                    AppLocalizations.of(context)!.appTitle,
                     style: TextStyle(
                       color: Color(0xFF0A66C2),
                       fontSize: 36,
@@ -112,7 +113,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               ),
               const SizedBox(height: 48),
               Text(
-                _isLogin ? 'Sign in' : 'Join RimLink',
+                _isLogin ? AppLocalizations.of(context)!.signIn : AppLocalizations.of(context)!.joinRimLink,
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -121,8 +122,8 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               const SizedBox(height: 8),
               Text(
                 _isLogin
-                    ? 'Stay updated on your professional world.'
-                    : 'Make the most of your professional life.',
+                    ? AppLocalizations.of(context)!.stayUpdated
+                    : AppLocalizations.of(context)!.makeMost,
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
@@ -133,9 +134,9 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               if (!_isLogin) ...[
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.fullName,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -143,18 +144,18 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.email,
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.password,
+                  border: const OutlineInputBorder(),
                 ),
                 obscureText: true,
               ),
@@ -176,7 +177,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
                     : Text(
-                        _isLogin ? 'Sign in' : 'Agree & Join',
+                        _isLogin ? AppLocalizations.of(context)!.signIn : AppLocalizations.of(context)!.agreeAndJoin,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
               ),
@@ -184,7 +185,7 @@ class _LoginSignupPageState extends State<LoginSignupPage> {
               TextButton(
                 onPressed: _toggleAuthMode,
                 child: Text(
-                  _isLogin ? 'New to RimLink? Join now' : 'Already on RimLink? Sign in',
+                  _isLogin ? AppLocalizations.of(context)!.newToRimLink : AppLocalizations.of(context)!.alreadyOnRimLink,
                   style: const TextStyle(
                     fontSize: 16,
                     color: Color(0xFF0A66C2),

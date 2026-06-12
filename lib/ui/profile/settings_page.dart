@@ -1,4 +1,4 @@
-import 'package:rimlink/models/data_models.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:rimlink/ui/auth/login_signup_page.dart';
@@ -12,7 +12,7 @@ class SettingsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Settings', style: TextStyle(color: Colors.black)),
+        title: Text(AppLocalizations.of(context)!.settings, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -27,19 +27,19 @@ class SettingsPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.grey[100],
-              child: const Text('ACCOUNT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              child: Text(AppLocalizations.of(context)!.account, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             ),
-            _buildSettingTile(Icons.person, 'Account preferences', context, const AccountPreferencesPage()),
-            _buildSettingTile(Icons.security, 'Sign in & security', context, const SecurityPage()),
+            _buildSettingTile(Icons.person, AppLocalizations.of(context)!.accountPreferences, context, const AccountPreferencesPage()),
+            _buildSettingTile(Icons.security, AppLocalizations.of(context)!.signInAndSecurity, context, const SecurityPage()),
             
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.grey[100],
-              child: const Text('ACTIONS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              child: Text(AppLocalizations.of(context)!.actions, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
             ),
             ListTile(
               leading: const Icon(Icons.exit_to_app, color: Colors.red),
-              title: const Text('Sign Out', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              title: Text(AppLocalizations.of(context)!.signOut, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
               onTap: () async {
                 await Supabase.instance.client.auth.signOut();
                 if (!context.mounted) return;

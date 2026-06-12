@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
+import 'package:rimlink/data/locale_service.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
@@ -11,21 +13,97 @@ class AccountPreferencesPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Account preferences', style: TextStyle(color: Colors.black)),
+        title: Text(AppLocalizations.of(context)!.accountPreferences, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
       ),
       body: ListView(
         children: [
-          _buildCategoryHeader('Profile information'),
-          _buildItem('Name, location, and industry', onTap: () {
+          _buildCategoryHeader(AppLocalizations.of(context)!.profileInformation),
+          _buildItem(AppLocalizations.of(context)!.nameLocationIndustry, onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const NameLocationIndustryPage()));
           }),
+          _buildCategoryHeader(AppLocalizations.of(context)!.language),
+          _buildItem(
+            _currentLocaleName(context),
+            subtitle: _currentLocaleName(context),
+            onTap: () => _showLanguagePicker(context),
+          ),
         ],
       ),
     );
   }
+}
+
+String _currentLocaleName(BuildContext context) {
+  switch (LocaleService.instance.locale.languageCode) {
+    case 'ar':
+      return AppLocalizations.of(context)!.arabic;
+    case 'fr':
+      return AppLocalizations.of(context)!.french;
+    default:
+      return AppLocalizations.of(context)!.english;
+  }
+}
+
+void _showLanguagePicker(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(AppLocalizations.of(context)!.language),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            title: Text(AppLocalizations.of(context)!.english),
+            leading: Radio<String>(
+              value: 'en',
+              groupValue: LocaleService.instance.locale.languageCode,
+              onChanged: (val) {
+                LocaleService.instance.setLocale('en');
+                Navigator.pop(context);
+              },
+            ),
+            onTap: () {
+              LocaleService.instance.setLocale('en');
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            title: Text(AppLocalizations.of(context)!.arabic),
+            leading: Radio<String>(
+              value: 'ar',
+              groupValue: LocaleService.instance.locale.languageCode,
+              onChanged: (val) {
+                LocaleService.instance.setLocale('ar');
+                Navigator.pop(context);
+              },
+            ),
+            onTap: () {
+              LocaleService.instance.setLocale('ar');
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            title: Text(AppLocalizations.of(context)!.french),
+            leading: Radio<String>(
+              value: 'fr',
+              groupValue: LocaleService.instance.locale.languageCode,
+              onChanged: (val) {
+                LocaleService.instance.setLocale('fr');
+                Navigator.pop(context);
+              },
+            ),
+            onTap: () {
+              LocaleService.instance.setLocale('fr');
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class NameLocationIndustryPage extends StatefulWidget {
@@ -99,7 +177,7 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
     
     if (mounted) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preferences saved successfully')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.preferencesSaved)));
     }
   }
 
@@ -108,7 +186,7 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Name, location, and industry', style: TextStyle(color: Colors.black)),
+        title: Text(AppLocalizations.of(context)!.nameLocationIndustry, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -116,7 +194,7 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
           if (!_isLoading)
             TextButton(
               onPressed: _save,
-              child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             )
         ],
       ),
@@ -127,7 +205,7 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('First and last name', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.firstNameLastName, style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _nameController,
@@ -135,7 +213,7 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
                 ),
                 const SizedBox(height: 24),
                 
-                const Text('Location', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.location, style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _locationController,
@@ -143,7 +221,7 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
                 ),
                 const SizedBox(height: 24),
 
-                const Text('Industry (Title)', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.industryTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _industryController,
@@ -164,18 +242,18 @@ class SecurityPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Sign in & security', style: TextStyle(color: Colors.black)),
+        title: Text(AppLocalizations.of(context)!.signInAndSecurity, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
       ),
       body: ListView(
         children: [
-          _buildCategoryHeader('Account access'),
-          _buildItem('Email addresses', subtitle: '1 email address', onTap: () {
+          _buildCategoryHeader(AppLocalizations.of(context)!.accountAccess),
+          _buildItem(AppLocalizations.of(context)!.emailAddresses, subtitle: AppLocalizations.of(context)!.oneEmailAddress, onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (c) => const EmailAddressesPage()));
           }),
-          _buildItem('Change password', onTap: () {
+          _buildItem(AppLocalizations.of(context)!.changePassword, onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (c) => const ChangePasswordPage()));
           }),
         ],
@@ -283,7 +361,7 @@ class EmailAddressesPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Email addresses', style: TextStyle(color: Colors.black)),
+        title: Text(AppLocalizations.of(context)!.emailAddresses, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -293,9 +371,9 @@ class EmailAddressesPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Primary email account',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              AppLocalizations.of(context)!.primaryEmailAccount,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Container(
@@ -313,7 +391,7 @@ class EmailAddressesPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(email, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const Text('Primary', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(AppLocalizations.of(context)!.primary, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   )
@@ -323,10 +401,10 @@ class EmailAddressesPage extends StatelessWidget {
             const SizedBox(height: 24),
             OutlinedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add email flow coming soon!')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.addEmailComingSoon)));
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add email address'),
+              label: Text(AppLocalizations.of(context)!.addEmailAddress),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Theme.of(context).primaryColor,
                 side: BorderSide(color: Theme.of(context).primaryColor),
@@ -363,12 +441,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   Future<void> _save() async {
     if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('New passwords do not match!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.passwordsDoNotMatch)));
       return;
     }
 
     if (_newPasswordController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.passwordMinLength)));
       return;
     }
 
@@ -378,12 +456,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       await _supabaseService.changePassword(_newPasswordController.text);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password successfully changed!')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.passwordChanged)));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')));
       }
     }
   }
@@ -393,7 +471,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Change password', style: TextStyle(color: Colors.black)),
+        title: Text(AppLocalizations.of(context)!.changePassword, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -401,7 +479,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           if (!_isLoading)
             TextButton(
               onPressed: _save,
-              child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             )
         ],
       ),
@@ -412,17 +490,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Create a new, strong password that you don\'t use for other websites.', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text(AppLocalizations.of(context)!.passwordHint, style: const TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 24),
-                  _buildPasswordField('Type your current password', _currentPasswordController),
+                  _buildPasswordField(AppLocalizations.of(context)!.currentPassword, _currentPasswordController),
                   const SizedBox(height: 16),
-                  _buildPasswordField('Type your new password', _newPasswordController),
+                  _buildPasswordField(AppLocalizations.of(context)!.newPassword, _newPasswordController),
                   const SizedBox(height: 16),
-                  _buildPasswordField('Retype your new password', _confirmPasswordController),
+                  _buildPasswordField(AppLocalizations.of(context)!.confirmNewPassword, _confirmPasswordController),
                   const SizedBox(height: 24),
                   TextButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification sent to primary email address.')));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.verificationSent)));
                     },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
@@ -430,7 +508,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       alignment: Alignment.centerLeft,
                       foregroundColor: Theme.of(context).primaryColor,
                     ),
-                    child: const Text('Forgot password?', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(AppLocalizations.of(context)!.forgotPassword, style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

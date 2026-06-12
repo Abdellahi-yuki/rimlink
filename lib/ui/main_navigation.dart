@@ -1,5 +1,5 @@
-import 'package:rimlink/models/data_models.dart';
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/ui/feed/feed_page.dart';
 import 'package:rimlink/ui/network/network_page.dart';
 import 'package:rimlink/ui/profile/profile_page.dart';
@@ -43,22 +43,22 @@ class _MainNavigationState extends State<MainNavigation> {
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         onTap: _onTabTapped,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: 'Home',
+            icon: const Icon(Icons.home_filled),
+            label: AppLocalizations.of(context)!.home,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people_alt),
-            label: 'My Network',
+            icon: const Icon(Icons.people_alt),
+            label: AppLocalizations.of(context)!.myNetwork,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.business_center),
-            label: 'Jobs',
+            icon: const Icon(Icons.business_center),
+            label: AppLocalizations.of(context)!.jobs,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Me',
+            icon: const Icon(Icons.person),
+            label: AppLocalizations.of(context)!.me,
           ),
         ],
       ),

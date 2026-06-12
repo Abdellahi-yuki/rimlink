@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/ui/widgets/post_widget.dart';
@@ -139,8 +140,8 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
         title: TextField(
           controller: _searchController,
           autofocus: widget.initialQuery.isEmpty,
-          decoration: const InputDecoration(
-            hintText: 'Search posts or people...',
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.searchHint,
             border: InputBorder.none,
           ),
           onSubmitted: _performSearch,
@@ -149,9 +150,9 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
           controller: _tabController,
           labelColor: Colors.black,
           indicatorColor: Theme.of(context).primaryColor,
-          tabs: const [
-            Tab(text: 'People'),
-            Tab(text: 'Posts'),
+          tabs: [
+            Tab(text: AppLocalizations.of(context)!.peopleYouMayKnow),
+            Tab(text: AppLocalizations.of(context)!.postDetail),
           ],
         ),
       ),
@@ -169,7 +170,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
 
   Widget _buildUserResults() {
     if (_userResults.isEmpty) {
-      return const Center(child: Text('No people found.'));
+      return Center(child: Text(AppLocalizations.of(context)!.noPeopleFound));
     }
     return ListView.builder(
       itemCount: _userResults.length,
@@ -205,7 +206,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
               style: OutlinedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
-              child: const Text('View Profile'),
+              child: Text(AppLocalizations.of(context)!.viewProfile),
             ),
           ),
         );

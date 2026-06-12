@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
 
@@ -68,7 +69,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to post: $e')),
+            SnackBar(content: Text('${AppLocalizations.of(context)!.failedToPost}: $e')),
           );
         }
       } finally {
@@ -82,7 +83,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Share post'),
+        title: Text(AppLocalizations.of(context)!.sharePost),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -92,7 +93,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
             onPressed: _isPosting ? null : _post,
             child: _isPosting 
               ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Post', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              : Text(AppLocalizations.of(context)!.post, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           )
         ],
       ),
@@ -130,8 +131,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
                           controller: _controller,
                           maxLines: null,
                           keyboardType: TextInputType.multiline,
-                          decoration: const InputDecoration(
-                            hintText: 'What do you want to talk about?',
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.whatToTalkAbout,
                             border: InputBorder.none,
                           ),
                           onChanged: (text) {

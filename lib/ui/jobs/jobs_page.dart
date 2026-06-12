@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/ui/jobs/job_detail_page.dart';
@@ -40,7 +41,7 @@ class _JobsPageState extends State<JobsPage> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading jobs: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.errorLoadingJobs}: $e')),
         );
       }
     }
@@ -55,12 +56,12 @@ class _JobsPageState extends State<JobsPage> {
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
-        title: const SizedBox(
+        title: SizedBox(
           height: 36,
           child: TextField(
             decoration: InputDecoration(
-              prefixIcon: Icon(Icons.search, size: 20, color: Colors.black54),
-              hintText: 'Search jobs',
+              prefixIcon: const Icon(Icons.search, size: 20, color: Colors.black54),
+              hintText: AppLocalizations.of(context)!.searchJobs,
               hintStyle: TextStyle(fontSize: 14),
               contentPadding: EdgeInsets.symmetric(vertical: 0),
               border: OutlineInputBorder(
@@ -99,7 +100,7 @@ class _JobsPageState extends State<JobsPage> {
                           children: [
                             _buildPillButton(
                               Icons.bookmark, 
-                              'My jobs', 
+                              AppLocalizations.of(context)!.myJobs, 
                               isActive: _showSavedOnly,
                               onTap: () {
                                 setState(() {
@@ -121,12 +122,12 @@ class _JobsPageState extends State<JobsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _showSavedOnly ? 'My saved jobs' : 'Recommended for you',
+                            _showSavedOnly ? AppLocalizations.of(context)!.mySavedJobs : AppLocalizations.of(context)!.recommendedForYou,
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _showSavedOnly ? 'Jobs you have saved for later' : 'Based on your profile and search history',
+                            _showSavedOnly ? AppLocalizations.of(context)!.jobsYouSaved : AppLocalizations.of(context)!.basedOnProfile,
                             style: const TextStyle(color: Colors.grey, fontSize: 12),
                           ),
                           const SizedBox(height: 16),
@@ -136,7 +137,7 @@ class _JobsPageState extends State<JobsPage> {
                               padding: const EdgeInsets.symmetric(vertical: 32),
                               child: Center(
                                 child: Text(
-                                  _showSavedOnly ? 'No saved jobs found.' : 'No jobs available at the moment.',
+                                  _showSavedOnly ? AppLocalizations.of(context)!.noSavedJobs : AppLocalizations.of(context)!.noJobsAvailable,
                                   style: const TextStyle(color: Colors.grey, fontSize: 16),
                                 ),
                               ),
@@ -197,49 +198,49 @@ class _JobsPageState extends State<JobsPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Post a Job', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          title: Text(AppLocalizations.of(context)!.postAJob, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Job Title',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.jobTitle,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: companyController,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.companyName,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Location (e.g., Remote, New York, NY)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.locationPlaceholder,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: descriptionController,
                   maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'Job Description',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.jobDescription,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: applyLinkController,
-                  decoration: const InputDecoration(
-                    labelText: 'Apply Link (URL)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.applyLink,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -249,7 +250,7 @@ class _JobsPageState extends State<JobsPage> {
                       value: isPromoted,
                       onChanged: (val) => setState(() => isPromoted = val ?? false),
                     ),
-                    const Text('Promoted Job'),
+                    Text(AppLocalizations.of(context)!.promotedJob),
                   ],
                 ),
               ],
@@ -258,7 +259,7 @@ class _JobsPageState extends State<JobsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -282,7 +283,7 @@ class _JobsPageState extends State<JobsPage> {
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Job posted successfully!')),
+                        SnackBar(content: Text(AppLocalizations.of(context)!.jobPosted)),
                       );
                       _loadJobs();
                     }
@@ -290,14 +291,14 @@ class _JobsPageState extends State<JobsPage> {
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error posting job: $e')),
+                        SnackBar(content: Text('${AppLocalizations.of(context)!.errorPostingJob}: $e')),
                       );
                     }
                   }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-              child: const Text('Post Job', style: TextStyle(color: Colors.white)),
+              child: Text(AppLocalizations.of(context)!.postJob, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -353,7 +354,7 @@ class _JobsPageState extends State<JobsPage> {
                   if (job.isEasyApply) ...[
                     const Icon(Icons.description, size: 14, color: Color(0xFF0A66C2)),
                     const SizedBox(width: 4),
-                    const Text('Easy Apply', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(AppLocalizations.of(context)!.easyApply, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     const SizedBox(width: 8),
                   ],
                   Text(job.timeAgo, style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600)),

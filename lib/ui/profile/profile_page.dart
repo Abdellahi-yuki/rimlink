@@ -1,9 +1,9 @@
 import 'package:image_picker/image_picker.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:flutter/material.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/ui/widgets/post_widget.dart';
-import 'package:rimlink/ui/widgets/full_screen_image_viewer.dart';
 import 'package:rimlink/ui/feed/post_detail_page.dart';
 import 'package:rimlink/ui/profile/settings_page.dart';
 
@@ -49,7 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading image: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.uploadImageError}: $e')),
         );
       }
     }
@@ -155,7 +155,7 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           ListTile(
             leading: const Icon(Icons.edit),
-            title: const Text('Edit post'),
+            title: Text(AppLocalizations.of(context)!.editPost),
             onTap: () {
               Navigator.pop(context);
               _editPostDialog(post);
@@ -163,17 +163,17 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text('Delete post', style: TextStyle(color: Colors.red)),
+            title: Text(AppLocalizations.of(context)!.deletePost, style: const TextStyle(color: Colors.red)),
             onTap: () async {
               Navigator.pop(context);
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Delete post'),
-                  content: const Text('Are you sure you want to delete this post?'),
+                  title: Text(AppLocalizations.of(context)!.deletePost),
+                  content: Text(AppLocalizations.of(context)!.deletePostConfirm),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red))),
                   ],
                 ),
               );
@@ -193,21 +193,21 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Post'),
+        title: Text(AppLocalizations.of(context)!.editPostTitle),
         content: TextField(
           controller: controller,
           maxLines: null,
           decoration: const InputDecoration(border: OutlineInputBorder()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel)),
           ElevatedButton(
             onPressed: () async {
               await _supabaseService.updatePostContent(post.id, controller.text);
               _loadPosts();
               if (mounted) Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
@@ -220,7 +220,7 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit $title', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(AppLocalizations.of(context)!.edit + ' $title', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller,
           maxLines: 5,
@@ -231,7 +231,7 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -240,7 +240,7 @@ class _ProfilePageState extends State<ProfilePage> {
               if (mounted) Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -266,16 +266,16 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Contact Info', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          title: Text(AppLocalizations.of(context)!.editContactInfo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.email,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -285,15 +285,15 @@ class _ProfilePageState extends State<ProfilePage> {
                       value: isEmailPublic,
                       onChanged: (val) => setState(() => isEmailPublic = val ?? false),
                     ),
-                    const Text('Make email public'),
+                    Text(AppLocalizations.of(context)!.makeEmailPublic),
                   ],
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.phone,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -303,7 +303,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       value: isPhonePublic,
                       onChanged: (val) => setState(() => isPhonePublic = val ?? false),
                     ),
-                    const Text('Make phone public'),
+                    Text(AppLocalizations.of(context)!.makePhonePublic),
                   ],
                 ),
               ],
@@ -312,7 +312,7 @@ class _ProfilePageState extends State<ProfilePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -329,20 +329,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Contact info updated successfully')),
+                      SnackBar(content: Text(AppLocalizations.of(context)!.contactInfoUpdated)),
                     );
                   }
                 } catch (e) {
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error updating contact info: $e')),
+                      SnackBar(content: Text('${AppLocalizations.of(context)!.errorUpdatingContact}: $e')),
                     );
                   }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -360,11 +360,11 @@ class _ProfilePageState extends State<ProfilePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Add to profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(AppLocalizations.of(context)!.addToProfile, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.work), 
-              title: const Text('Add experience'), 
+              title: Text(AppLocalizations.of(context)!.addExperience), 
               onTap: () {
                 Navigator.pop(context);
                 _editExperienceDialog(null);
@@ -372,7 +372,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             ListTile(
               leading: const Icon(Icons.school), 
-              title: const Text('Add education'), 
+              title: Text(AppLocalizations.of(context)!.addEducation), 
               onTap: () {
                 Navigator.pop(context);
                 _editEducationDialog(null);
@@ -380,10 +380,10 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             ListTile(
               leading: const Icon(Icons.build), 
-              title: const Text('Add skills'), 
+              title: Text(AppLocalizations.of(context)!.addSkills), 
               onTap: () {
                 Navigator.pop(context);
-                _editFieldDialog('Skills', displayUser.skills, (val) => setState(() => displayUser.skills = val));
+                _editFieldDialog(AppLocalizations.of(context)!.skills, displayUser.skills, (val) => setState(() => displayUser.skills = val));
               }
             ),
           ],
@@ -403,57 +403,57 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(education == null ? 'Add Education' : 'Edit Education', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(education == null ? AppLocalizations.of(context)!.addEducationTitle : AppLocalizations.of(context)!.editEducationTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: schoolController,
-                decoration: const InputDecoration(
-                  labelText: 'School',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.school,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: degreeController,
-                decoration: const InputDecoration(
-                  labelText: 'Degree (e.g., Bachelor of Science)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.degree,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: fieldOfStudyController,
-                decoration: const InputDecoration(
-                  labelText: 'Field of Study (e.g., Computer Science)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.fieldOfStudy,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: startDateController,
-                decoration: const InputDecoration(
-                  labelText: 'Start Date (e.g., Jan 2020)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.startDateExample,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: endDateController,
-                decoration: const InputDecoration(
-                  labelText: 'End Date (optional, e.g., Jan 2024 or leave blank if ongoing)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.endDateExample,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: descriptionController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.descriptionOptional,
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -462,7 +462,7 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -487,7 +487,7 @@ class _ProfilePageState extends State<ProfilePage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -505,57 +505,57 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(experience == null ? 'Add Experience' : 'Edit Experience', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(experience == null ? AppLocalizations.of(context)!.addExperienceTitle : AppLocalizations.of(context)!.editExperienceTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Job Title',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.jobTitle,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: companyController,
-                decoration: const InputDecoration(
-                  labelText: 'Company',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.company,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.location,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: startDateController,
-                decoration: const InputDecoration(
-                  labelText: 'Start Date (e.g., Jan 2020)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.startDate,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: endDateController,
-                decoration: const InputDecoration(
-                  labelText: 'End Date (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.endDateOptional,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: descriptionController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.description,
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -564,7 +564,7 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -589,7 +589,7 @@ class _ProfilePageState extends State<ProfilePage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -606,11 +606,11 @@ class _ProfilePageState extends State<ProfilePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Open to', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(AppLocalizations.of(context)!.openTo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ListTile(
-              title: Text(displayUser.isOpenToWork ? 'Remove "Open to work"' : 'Finding a new job', style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Show recruiters and others that you are open to work'),
+              title: Text(displayUser.isOpenToWork ? AppLocalizations.of(context)!.removeOpenToWork : AppLocalizations.of(context)!.findingNewJob, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(AppLocalizations.of(context)!.openToWorkSubtitle),
               onTap: () async {
                 setState(() {
                   displayUser.isOpenToWork = !displayUser.isOpenToWork;
@@ -624,8 +624,8 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             ListTile(
-              title: Text(displayUser.isHiring ? 'Remove "Hiring"' : 'Hiring', style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Share that you are hiring and attract qualified candidates'),
+              title: Text(displayUser.isHiring ? AppLocalizations.of(context)!.removeHiring : AppLocalizations.of(context)!.hiring, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(AppLocalizations.of(context)!.hiringSubtitle),
               onTap: () async {
                 setState(() {
                   displayUser.isHiring = !displayUser.isHiring;
@@ -639,8 +639,8 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             ListTile(
-              title: Text(displayUser.isProvidingServices ? 'Remove "Providing services"' : 'Providing services', style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Showcase services you offer so new clients can discover you'),
+              title: Text(displayUser.isProvidingServices ? AppLocalizations.of(context)!.removeProvidingServices : AppLocalizations.of(context)!.providingServices, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(AppLocalizations.of(context)!.providingServicesSubtitle),
               onTap: () async {
                 setState(() {
                   displayUser.isProvidingServices = !displayUser.isProvidingServices;
@@ -696,7 +696,7 @@ class _ProfilePageState extends State<ProfilePage> {
             if (displayUser.email != null && displayUser.email!.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.email, color: Colors.grey),
-                title: const Text('Email'),
+                title: Text(AppLocalizations.of(context)!.email),
                 subtitle: Text(displayUser.email!),
                 trailing: isOwner
                   ? IconButton(
@@ -720,7 +720,7 @@ class _ProfilePageState extends State<ProfilePage> {
             if (displayUser.phone != null && displayUser.phone!.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.phone, color: Colors.grey),
-                title: const Text('Phone'),
+                title: Text(AppLocalizations.of(context)!.phone),
                 subtitle: Text(displayUser.phone!),
                 trailing: isOwner
                   ? IconButton(
@@ -743,9 +743,9 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             if ((displayUser.email == null || displayUser.email!.isEmpty || (!isOwner && !isEmailPublic)) && 
                 (displayUser.phone == null || displayUser.phone!.isEmpty || (!isOwner && !isPhonePublic)))
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('No contact information available', style: TextStyle(color: Colors.grey)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(AppLocalizations.of(context)!.noContactInfo, style: const TextStyle(color: Colors.grey)),
               ),
           ],
         ),
@@ -760,7 +760,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     
     if (_profileUser == null) {
-      return const Scaffold(body: Center(child: Text('Profile not found.')));
+      return Scaffold(body: Center(child: Text(AppLocalizations.of(context)!.profileNotFound)));
     }
 
     final displayUser = _profileUser!;
@@ -857,18 +857,18 @@ class _ProfilePageState extends State<ProfilePage> {
                                                  _showContactInfoModal(displayUser, isOwner, contactInfo);
                                                }
                                              },
-                                             child: const Text(
-                                               'Contact info',
-                                               style: TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
-                                             ),
+                                              child: Text(
+                                                AppLocalizations.of(context)!.contactInfo,
+                                                style: const TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
+                                              ),
                                            ),
                                          ],
                                        ),
                                       const SizedBox(height: 12),
-                                       Text(
-                                         '${displayUser.connections} connection${displayUser.connections != 1 ? 's' : ''}',
-                                         style: const TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold),
-                                       ),
+                                        Text(
+                                          AppLocalizations.of(context)!.connectionCount(displayUser.connections),
+                                          style: const TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -897,7 +897,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                       ),
-                                      child: const Text('Open to'),
+                                      child: Text(AppLocalizations.of(context)!.openTo),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -909,7 +909,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         side: BorderSide(color: Theme.of(context).primaryColor),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                       ),
-                                      child: const Text('Add section'),
+                                      child: Text(AppLocalizations.of(context)!.addSection),
                                     ),
                                   ),
                                 ] else ...[
@@ -922,7 +922,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           side: const BorderSide(color: Colors.grey),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                         ),
-                                        child: const Text('Connected'),
+                                        child: Text(AppLocalizations.of(context)!.connected),
                                       ),
                                     )
                                   else if (_connectionStatus == 'sent')
@@ -937,7 +937,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           side: BorderSide(color: Colors.grey[400]!),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                         ),
-                                        child: const Text('Pending'),
+                                        child: Text(AppLocalizations.of(context)!.pending),
                                       ),
                                     )
                                   else if (_connectionStatus == 'received')
@@ -952,7 +952,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                         ),
-                                        child: const Text('Accept'),
+                                        child: Text(AppLocalizations.of(context)!.accept),
                                       ),
                                     )
                                   else
@@ -967,7 +967,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                         ),
-                                        child: const Text('Connect'),
+                                        child: Text(AppLocalizations.of(context)!.connect),
                                       ),
                                     ),
                                   const SizedBox(width: 8),
@@ -979,7 +979,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         side: BorderSide(color: Theme.of(context).primaryColor),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                       ),
-                                      child: const Text('Contact info'),
+                                              child: Text(AppLocalizations.of(context)!.contactInfo),
                                     ),
                                   ),
                                 ],
@@ -1031,11 +1031,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                         if (displayUser.isOpenToWork)
-                          _buildBadgeBanner('#OPENTOWORK', Colors.green)
+                          _buildBadgeBanner(AppLocalizations.of(context)!.openToWorkBadge, Colors.green)
                         else if (displayUser.isHiring)
-                          _buildBadgeBanner('#HIRING', Colors.purple)
+                          _buildBadgeBanner(AppLocalizations.of(context)!.hiringBadge, Colors.purple)
                         else if (displayUser.isProvidingServices)
-                          _buildBadgeBanner('PROVIDING SERVICES', Colors.blueGrey),
+                          _buildBadgeBanner(AppLocalizations.of(context)!.providingServicesBadge, Colors.blueGrey),
                         if (isOwner)
                           Positioned(
                             bottom: 0,
@@ -1068,15 +1068,15 @@ class _ProfilePageState extends State<ProfilePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'About',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      Text(
+                        AppLocalizations.of(context)!.about,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       if (isOwner)
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.grey),
                           onPressed: () {
-                            _editFieldDialog('About', displayUser.about, (newVal) {
+                            _editFieldDialog(AppLocalizations.of(context)!.about, displayUser.about, (newVal) {
                               setState(() => displayUser.about = newVal);
                             });
                           },
@@ -1085,7 +1085,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    displayUser.about.isEmpty ? (isOwner ? "Add your summary here." : "Nothing in the About section") : displayUser.about,
+                    displayUser.about.isEmpty ? (isOwner ? AppLocalizations.of(context)!.addYourSummary : AppLocalizations.of(context)!.nothingInAbout) : displayUser.about,
                     style: TextStyle(fontSize: 14, height: 1.5, color: displayUser.about.isEmpty ? Colors.grey : Colors.black),
                   ),
                 ],
@@ -1104,9 +1104,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Experience',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      Text(
+                        AppLocalizations.of(context)!.experience,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       if (isOwner)
                         Row(
@@ -1135,7 +1135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'No experience added yet.',
+                        AppLocalizations.of(context)!.noExperienceAdded,
                         style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
                       ),
                     ),
@@ -1155,7 +1155,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Education', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text(AppLocalizations.of(context)!.education, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       if (isOwner)
                         IconButton(
                           icon: const Icon(Icons.add),
@@ -1175,7 +1175,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'No education added yet.',
+                        AppLocalizations.of(context)!.noEducationAdded,
                         style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
                       ),
                     ),
@@ -1195,14 +1195,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Skills', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text(AppLocalizations.of(context)!.skills, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         if (isOwner)
                           Row(
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit, color: Colors.grey),
                                 onPressed: () {
-                                  _editFieldDialog('Skills', displayUser.skills, (newVal) {
+                                  _editFieldDialog(AppLocalizations.of(context)!.skills, displayUser.skills, (newVal) {
                                     setState(() => displayUser.skills = newVal);
                                   });
                                 },
@@ -1218,11 +1218,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const Divider(),
                     if (isOwner)
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.people, size: 16, color: Colors.grey),
-                          SizedBox(width: 8),
-                          Text('Endorsed by multiple connections', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          const Icon(Icons.people, size: 16, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Text(AppLocalizations.of(context)!.endorsedByConnections, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                         ],
                       ),
                   ],
@@ -1239,12 +1239,12 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Activity', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)!.activity, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text('${_userPosts.length} posts', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)!.postsCount(_userPosts.length), style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   if (_userPosts.isEmpty)
-                    const Text('No posts yet.', style: TextStyle(color: Colors.grey))
+                    Text(AppLocalizations.of(context)!.noPostsYet, style: const TextStyle(color: Colors.grey))
                   else
                     ..._userPosts.map((post) => PostWidget(
                       post: post,
@@ -1266,13 +1266,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           await _supabaseService.repostPost(post.id);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Post reposted')),
+                              SnackBar(content: Text(AppLocalizations.of(context)!.postReposted)),
                             );
                           }
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
+                              SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
                             );
                           }
                         }
@@ -1311,7 +1311,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    education['school'] ?? 'Unknown School',
+                    education['school'] ?? AppLocalizations.of(context)!.unknownSchool,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   if (isOwner)
@@ -1319,13 +1319,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: EdgeInsets.zero,
                       icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
                       itemBuilder: (context) => [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'edit',
-                          child: Text('Edit', style: TextStyle(fontSize: 14)),
+                          child: Text(AppLocalizations.of(context)!.edit, style: const TextStyle(fontSize: 14)),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
-                          child: Text('Delete', style: TextStyle(fontSize: 14, color: Colors.red)),
+                          child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(fontSize: 14, color: Colors.red)),
                         ),
                       ],
                       onSelected: (value) async {
@@ -1335,16 +1335,16 @@ class _ProfilePageState extends State<ProfilePage> {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('Delete education'),
-                              content: const Text('Are you sure you want to delete this education?'),
+                              title: Text(AppLocalizations.of(context)!.deleteEducation),
+                              content: Text(AppLocalizations.of(context)!.deleteEducationConfirm),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Cancel'),
+                                  child: Text(AppLocalizations.of(context)!.cancel),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                  child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red)),
                                 ),
                               ],
                             ),
@@ -1369,7 +1369,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: const TextStyle(fontSize: 14),
                 ),
               Text(
-                '${education['start_date'] ?? 'Unknown'} - ${education['end_date'] ?? 'Present'}',
+                '${education['start_date'] ?? AppLocalizations.of(context)!.unknown} - ${education['end_date'] ?? AppLocalizations.of(context)!.present}',
                 style: const TextStyle(color: Colors.grey, fontSize: 14),
               ),
               const SizedBox(height: 8),
@@ -1410,13 +1410,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: EdgeInsets.zero,
                       icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
                       itemBuilder: (context) => [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'edit',
-                          child: Text('Edit', style: TextStyle(fontSize: 14)),
+                          child: Text(AppLocalizations.of(context)!.edit, style: const TextStyle(fontSize: 14)),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
-                          child: Text('Delete', style: TextStyle(fontSize: 14, color: Colors.red)),
+                          child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(fontSize: 14, color: Colors.red)),
                         ),
                       ],
                       onSelected: (value) async {
@@ -1426,16 +1426,16 @@ class _ProfilePageState extends State<ProfilePage> {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('Delete experience'),
-                              content: const Text('Are you sure you want to delete this experience?'),
+                              title: Text(AppLocalizations.of(context)!.deleteExperience),
+                              content: Text(AppLocalizations.of(context)!.deleteExperienceConfirm),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Cancel'),
+                                  child: Text(AppLocalizations.of(context)!.cancel),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                  child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red)),
                                 ),
                               ],
                             ),
@@ -1451,7 +1451,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               Text(experience['company'], style: const TextStyle(fontSize: 14)),
               Text(
-                '${experience['start_date']} - ${experience['end_date'] ?? 'Present'}',
+                '${experience['start_date']} - ${experience['end_date'] ?? AppLocalizations.of(context)!.present}',
                 style: const TextStyle(color: Colors.grey, fontSize: 14),
               ),
               if (experience['location'] != null && experience['location'].isNotEmpty)

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/ui/widgets/post_widget.dart';
 import 'package:rimlink/ui/widgets/full_screen_image_viewer.dart';
 import 'package:rimlink/ui/profile/profile_page.dart';
@@ -43,7 +44,7 @@ class _FeedPageState extends State<FeedPage> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading posts: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.errorLoadingPosts}: $e')),
         );
       }
     }
@@ -64,7 +65,7 @@ class _FeedPageState extends State<FeedPage> {
         children: [
           ListTile(
             leading: const Icon(Icons.edit),
-            title: const Text('Edit post'),
+            title: Text(AppLocalizations.of(context)!.editPost),
             onTap: () {
               Navigator.pop(context);
               _editPostDialog(post);
@@ -72,17 +73,17 @@ class _FeedPageState extends State<FeedPage> {
           ),
           ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text('Delete post', style: TextStyle(color: Colors.red)),
+            title: Text(AppLocalizations.of(context)!.deletePost, style: const TextStyle(color: Colors.red)),
             onTap: () async {
               Navigator.pop(context);
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Delete post'),
-                  content: const Text('Are you sure you want to delete this post?'),
+                  title: Text(AppLocalizations.of(context)!.deletePost),
+                  content: Text(AppLocalizations.of(context)!.deletePostConfirm),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel)),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red))),
                   ],
                 ),
               );
@@ -102,14 +103,14 @@ class _FeedPageState extends State<FeedPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Post'),
+        title: Text(AppLocalizations.of(context)!.editPostTitle),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Write something...'),
+          decoration: InputDecoration(hintText: AppLocalizations.of(context)!.writeSomething),
           maxLines: 3,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel)),
           TextButton(
             onPressed: () async {
               if (controller.text.trim().isEmpty) return;
@@ -117,7 +118,7 @@ class _FeedPageState extends State<FeedPage> {
               if (context.mounted) Navigator.pop(context);
               _refreshPosts();
             },
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
@@ -134,9 +135,9 @@ class _FeedPageState extends State<FeedPage> {
           child: TextField(
             readOnly: true,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchPage())),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search, size: 20, color: Colors.black54),
-              hintText: 'Search',
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search, size: 20, color: Colors.black54),
+              hintText: AppLocalizations.of(context)!.search,
               hintStyle: TextStyle(fontSize: 14),
               contentPadding: EdgeInsets.symmetric(vertical: 0),
               border: OutlineInputBorder(
@@ -171,7 +172,7 @@ class _FeedPageState extends State<FeedPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Create a post', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              label: Text(AppLocalizations.of(context)!.createAPost, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               onPressed: () => _navigateAndRefresh(context, const CreatePostPage()),
             ),
           ),
@@ -181,8 +182,8 @@ class _FeedPageState extends State<FeedPage> {
         onRefresh: _refreshPosts,
         child: _isLoading && _posts.isEmpty
             ? const Center(child: CircularProgressIndicator())
-            : _posts.isEmpty
-                ? const Center(child: Text('No posts yet. Be the first to share something!'))
+                : _posts.isEmpty
+                    ? Center(child: Text(AppLocalizations.of(context)!.noPostsYet))
                 : ListView.builder(
                     itemCount: _posts.length,
                     itemBuilder: (context, index) {
@@ -199,13 +200,13 @@ class _FeedPageState extends State<FeedPage> {
                             _refreshPosts();
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Post reposted')),
+                                SnackBar(content: Text(AppLocalizations.of(context)!.postReposted)),
                               );
                             }
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
+                                SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
                               );
                             }
                           }

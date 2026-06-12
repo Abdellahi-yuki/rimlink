@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/ui/profile/profile_page.dart';
@@ -50,7 +51,7 @@ class _NetworkPageState extends State<NetworkPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invitation to ${user.name} cancelled')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.invitationCancelled}')),
         );
       }
     } catch (e) {
@@ -69,7 +70,7 @@ class _NetworkPageState extends State<NetworkPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invitation sent to ${user.name}')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.invitationSent}')),
         );
       }
     } catch (e) {
@@ -108,7 +109,7 @@ class _NetworkPageState extends State<NetworkPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Manage my network',
+                              AppLocalizations.of(context)!.manageNetwork,
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
                             ),
                             Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]),
@@ -120,7 +121,7 @@ class _NetworkPageState extends State<NetworkPage> {
 
                   // Sent Invitations Section
                   if (_sentInvitations.isNotEmpty) ...[
-                    _buildSectionHeader('Sent invitations (${_sentInvitations.length})'),
+                    _buildSectionHeader('${AppLocalizations.of(context)!.sentInvitations} (${_sentInvitations.length})'),
                     SliverToBoxAdapter(
                       child: Container(
                         height: 190,
@@ -140,7 +141,7 @@ class _NetworkPageState extends State<NetworkPage> {
 
                   // Connections Section
                   if (_connections.isNotEmpty) ...[
-                    _buildSectionHeader('Connections (${_connections.length})'),
+                    _buildSectionHeader('${AppLocalizations.of(context)!.connections} (${_connections.length})'),
                     SliverToBoxAdapter(
                       child: Container(
                         height: 190,
@@ -159,7 +160,7 @@ class _NetworkPageState extends State<NetworkPage> {
                   ],
 
                   // Suggestions Section
-                  _buildSectionHeader('People you may know'),
+                  _buildSectionHeader(AppLocalizations.of(context)!.peopleYouMayKnow),
                   SliverPadding(
                     padding: const EdgeInsets.all(12),
                     sliver: SliverGrid(
@@ -241,12 +242,12 @@ class _NetworkPageState extends State<NetworkPage> {
               TextButton(
                 onPressed: () => _cancelInvitation(user),
                 style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                child: const Text('Cancel', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
               )
             else if (isConnection)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text('Connected', style: TextStyle(color: Colors.grey, fontSize: 11)),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(AppLocalizations.of(context)!.connected, style: const TextStyle(color: Colors.grey, fontSize: 11)),
               ),
           ],
         ),
@@ -334,7 +335,7 @@ class _NetworkPageState extends State<NetworkPage> {
                   side: BorderSide(color: Theme.of(context).primaryColor),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
-                child: const Text('Connect', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.of(context)!.connect, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

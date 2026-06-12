@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rimlink/l10n/app_localizations.dart';
 import 'package:rimlink/data/supabase_service.dart';
 import 'package:rimlink/models/data_models.dart';
 import 'package:rimlink/ui/profile/profile_page.dart';
@@ -56,7 +57,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Manage invitations'),
+        title: Text(AppLocalizations.of(context)!.manageNetwork),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -64,7 +65,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
       body: _isLoading 
           ? const Center(child: CircularProgressIndicator())
           : _invitations.isEmpty
-              ? const Center(child: Text('No pending invitations', style: TextStyle(color: Colors.grey, fontSize: 16)))
+              ? Center(child: Text(AppLocalizations.of(context)!.noPendingInvitations, style: const TextStyle(color: Colors.grey, fontSize: 16)))
               : ListView.separated(
                   itemCount: _invitations.length,
                   separatorBuilder: (context, index) => const Divider(height: 1),
