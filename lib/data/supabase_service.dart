@@ -83,8 +83,8 @@ class SupabaseService {
         }
         debugPrint('Extracted contact data for $id: $contactData');
       }
-
-      // Create user map without the nested contact_info to avoid conflicts
+      
+      // Create user map with contact info
       final userMap = {
         ...data,
         'email': contactData?['email'],
@@ -392,12 +392,12 @@ class SupabaseService {
         .ilike('content', '%$query%')
         .order('created_at', ascending: false)
         .limit(20);
-
+    
     final userId = currentUserId;
     List<String> likedPostIds = [];
     if (userId != null) {
       final List<dynamic> likes = await _client
-          .from('likes')
+          .from('post_likes')
           .select('post_id')
           .eq('user_id', userId);
       likedPostIds = likes.map((l) => l['post_id'] as String).toList();
@@ -451,7 +451,7 @@ class SupabaseService {
     try {
       final data = await _client
           .from('contact_info')
-          .select()
+          .select('*')
           .eq('user_id', userId)
           .maybeSingle();
       

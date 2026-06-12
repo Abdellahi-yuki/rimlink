@@ -65,9 +65,9 @@ class Experience {
 
 class User {
   final String id;
-  String name;
+  final String name;
   String title;
-  final String location;
+  String location;
   String about;
   String experience;
   String education;
@@ -84,21 +84,59 @@ class User {
   User({
     required this.id,
     required this.name,
-    required this.title,
-    required this.location,
-    required this.about,
-    required this.experience,
+    this.title = '',
+    this.location = '',
+    this.about = '',
+    this.experience = '',
     this.education = '',
     this.skills = '',
+    this.connections = 0,
     this.isOpenToWork = false,
     this.isHiring = false,
     this.isProvidingServices = false,
-    required this.connections,
     this.avatarUrl,
     this.bannerUrl,
     this.email,
     this.phone,
   });
+
+  User copyWith({
+    String? id,
+    String? name,
+    String? title,
+    String? location,
+    String? about,
+    String? experience,
+    String? education,
+    String? skills,
+    int? connections,
+    bool? isOpenToWork,
+    bool? isHiring,
+    bool? isProvidingServices,
+    String? avatarUrl,
+    String? bannerUrl,
+    String? email,
+    String? phone,
+  }) {
+    return User(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      title: title ?? this.title,
+      location: location ?? this.location,
+      about: about ?? this.about,
+      experience: experience ?? this.experience,
+      education: education ?? this.education,
+      skills: skills ?? this.skills,
+      connections: connections ?? this.connections,
+      isOpenToWork: isOpenToWork ?? this.isOpenToWork,
+      isHiring: isHiring ?? this.isHiring,
+      isProvidingServices: isProvidingServices ?? this.isProvidingServices,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      bannerUrl: bannerUrl ?? this.bannerUrl,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+    );
+  }
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(

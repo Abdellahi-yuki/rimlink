@@ -63,7 +63,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadProfile() async {
     setState(() => _isLoading = true);
     if (widget.user != null) {
-      _profileUser = widget.user;
+      _profileUser = await _supabaseService.getProfileById(widget.user!.id);
     } else {
       _profileUser = await _supabaseService.getCurrentUserProfile();
     }
@@ -74,6 +74,31 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         setState(() {
           _experiences = experiences;
+        });
+      }
+      
+      // Load contact info
+      final contactInfo = await _supabaseService.getContactInfo(_profileUser!.id);
+      if (mounted) {
+        setState(() {
+          _profileUser = User(
+            id: _profileUser!.id,
+            name: _profileUser!.name,
+            title: _profileUser!.title,
+            location: _profileUser!.location,
+            about: _profileUser!.about,
+            experience: _profileUser!.experience,
+            education: _profileUser!.education,
+            skills: _profileUser!.skills,
+            connections: _profileUser!.connections,
+            isOpenToWork: _profileUser!.isOpenToWork,
+            isHiring: _profileUser!.isHiring,
+            isProvidingServices: _profileUser!.isProvidingServices,
+            avatarUrl: _profileUser!.avatarUrl,
+            bannerUrl: _profileUser!.bannerUrl,
+            email: contactInfo?['email'],
+            phone: contactInfo?['phone'],
+          );
         });
       }
       
@@ -208,67 +233,102 @@ class _ProfilePageState extends State<ProfilePage> {
   void _editContactInfoDialog() {
     final emailController = TextEditingController(text: _profileUser?.email ?? '');
     final phoneController = TextEditingController(text: _profileUser?.phone ?? '');
+    bool isEmailPublic = false;
+    bool isPhonePublic = false;
+
+    // Fetch current privacy settings
+    _supabaseService.getContactInfo(_profileUser!.id).then((contactInfo) {
+      if (contactInfo != null) {
+        isEmailPublic = contactInfo['is_email_public'] ?? false;
+        isPhonePublic = contactInfo['is_phone_public'] ?? false;
+        if (mounted) setState(() {});
+      }
+    });
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Contact Info', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Contact Info', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: isEmailPublic,
+                      onChanged: (val) => setState(() => isEmailPublic = val ?? false),
+                    ),
+                    const Text('Make email public'),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: isPhonePublic,
+                      onChanged: (val) => setState(() => isPhonePublic = val ?? false),
+                    ),
+                    const Text('Make phone public'),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final contactData = {
-                  'email': emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-                  'phone': phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
-                };
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  final contactData = {
+                    'email': emailController.text.trim().isEmpty ? null : emailController.text.trim(),
+                    'phone': phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
+                    'is_email_public': isEmailPublic,
+                    'is_phone_public': isPhonePublic,
+                  };
 
-                await _supabaseService.updateContactInfo(_profileUser!.id, contactData);
-                await _loadProfile();
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Contact info updated successfully')),
-                  );
+                  await _supabaseService.updateContactInfo(_profileUser!.id, contactData);
+                  await _loadProfile();
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Contact info updated successfully')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error updating contact info: $e')),
+                    );
+                  }
                 }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error updating contact info: $e')),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+              child: const Text('Save', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -480,7 +540,15 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _showContactInfoModal(User displayUser, bool isOwner) {
+  void _showContactInfoModal(User displayUser, bool isOwner, [Map<String, dynamic>? contactInfo]) async {
+    // Fetch contact info if not provided
+    contactInfo ??= await _supabaseService.getContactInfo(displayUser.id);
+    final bool isEmailPublic = contactInfo?['is_email_public'] ?? false;
+    final bool isPhonePublic = contactInfo?['is_phone_public'] ?? false;
+    
+    debugPrint('Contact info in modal: $contactInfo');
+    debugPrint('Is email public: $isEmailPublic, Is phone public: $isPhonePublic');
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -511,15 +579,51 @@ class _ProfilePageState extends State<ProfilePage> {
                 leading: const Icon(Icons.email, color: Colors.grey),
                 title: const Text('Email'),
                 subtitle: Text(displayUser.email!),
+                trailing: isOwner
+                  ? IconButton(
+                      icon: Icon(
+                        isEmailPublic ? Icons.visibility : Icons.visibility_off,
+                        color: isEmailPublic ? Colors.green : Colors.grey,
+                      ),
+                      onPressed: () async {
+                        final updatedContactInfo = {
+                          'is_email_public': !isEmailPublic,
+                        };
+                        await _supabaseService.updateContactInfo(displayUser.id, updatedContactInfo);
+                        if (mounted) {
+                          Navigator.pop(context);
+                          _showContactInfoModal(displayUser, isOwner);
+                        }
+                      },
+                    )
+                  : null,
               ),
             if (displayUser.phone != null && displayUser.phone!.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.phone, color: Colors.grey),
                 title: const Text('Phone'),
                 subtitle: Text(displayUser.phone!),
+                trailing: isOwner
+                  ? IconButton(
+                      icon: Icon(
+                        isPhonePublic ? Icons.visibility : Icons.visibility_off,
+                        color: isPhonePublic ? Colors.green : Colors.grey,
+                      ),
+                      onPressed: () async {
+                        final updatedContactInfo = {
+                          'is_phone_public': !isPhonePublic,
+                        };
+                        await _supabaseService.updateContactInfo(displayUser.id, updatedContactInfo);
+                        if (mounted) {
+                          Navigator.pop(context);
+                          _showContactInfoModal(displayUser, isOwner);
+                        }
+                      },
+                    )
+                  : null,
               ),
-            if ((displayUser.email == null || displayUser.email!.isEmpty) && 
-                (displayUser.phone == null || displayUser.phone!.isEmpty))
+            if ((displayUser.email == null || displayUser.email!.isEmpty || (!isOwner && !isEmailPublic)) && 
+                (displayUser.phone == null || displayUser.phone!.isEmpty || (!isOwner && !isPhonePublic)))
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Text('No contact information available', style: TextStyle(color: Colors.grey)),
@@ -623,13 +727,18 @@ class _ProfilePageState extends State<ProfilePage> {
                                             style: const TextStyle(color: Colors.grey, fontSize: 14),
                                           ),
                                           const SizedBox(width: 8),
-                                           InkWell(
-                                             onTap: () => _showContactInfoModal(displayUser, isOwner),
-                                             child: const Text(
-                                               'Contact info',
-                                               style: TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
-                                             ),
-                                           ),
+                                        InkWell(
+                                              onTap: () async {
+                                                final contactInfo = await _supabaseService.getContactInfo(displayUser.id);
+                                                if (mounted) {
+                                                  _showContactInfoModal(displayUser, isOwner, contactInfo);
+                                                }
+                                              },
+                                              child: const Text(
+                                                'Contact info',
+                                                style: TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
+                                              ),
+                                            ),
                                         ],
                                       ),
                                       const SizedBox(height: 12),

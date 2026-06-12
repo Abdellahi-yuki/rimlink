@@ -399,6 +399,16 @@ CREATE POLICY "Users can update own profile." ON "public"."profiles" FOR UPDATE 
 
 CREATE POLICY "Users manage their contact info." ON "public"."contact_info" USING (("auth"."uid"() = "user_id"));
 
+-- Allow read access to public contact info
+-- Users can view contact info if they are the owner OR if at least one field is public
+CREATE POLICY "Users can view public contact info." ON "public"."contact_info" 
+FOR SELECT 
+USING (
+  ("auth"."uid"() = "user_id") OR 
+  ("is_email_public" = true) OR 
+  ("is_phone_public" = true)
+);
+
 
 
 CREATE POLICY "Users manage their experiences." ON "public"."experiences" USING (("auth"."uid"() = "user_id"));
