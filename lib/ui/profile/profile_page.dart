@@ -21,6 +21,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = true;
   List<Post> _userPosts = [];
   List<Map<String, dynamic>> _experiences = [];
+  List<Map<String, dynamic>> _educations = [];
   String? _connectionStatus; // 'sent', 'received', 'accepted', or null
   final ImagePicker _picker = ImagePicker();
 
@@ -74,6 +75,14 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         setState(() {
           _experiences = experiences;
+        });
+      }
+      
+      // Load educations
+      final educations = await _supabaseService.getEducations(_profileUser!.id);
+      if (mounted) {
+        setState(() {
+          _educations = educations;
         });
       }
       
@@ -358,7 +367,7 @@ class _ProfilePageState extends State<ProfilePage> {
               title: const Text('Add education'), 
               onTap: () {
                 Navigator.pop(context);
-                _editFieldDialog('Education', displayUser.education, (val) => setState(() => displayUser.education = val));
+                _editEducationDialog(null);
               }
             ),
             ListTile(
@@ -371,6 +380,108 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _editEducationDialog(Map<String, dynamic>? education) {
+    final schoolController = TextEditingController(text: education?['school'] ?? '');
+    final degreeController = TextEditingController(text: education?['degree'] ?? '');
+    final fieldOfStudyController = TextEditingController(text: education?['field_of_study'] ?? '');
+    final startDateController = TextEditingController(text: education?['start_date'] ?? '');
+    final endDateController = TextEditingController(text: education?['end_date'] ?? '');
+    final descriptionController = TextEditingController(text: education?['description'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(education == null ? 'Add Education' : 'Edit Education', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: schoolController,
+                decoration: const InputDecoration(
+                  labelText: 'School',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: degreeController,
+                decoration: const InputDecoration(
+                  labelText: 'Degree (e.g., Bachelor of Science)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: fieldOfStudyController,
+                decoration: const InputDecoration(
+                  labelText: 'Field of Study (e.g., Computer Science)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: startDateController,
+                decoration: const InputDecoration(
+                  labelText: 'Start Date (e.g., Jan 2020)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: endDateController,
+                decoration: const InputDecoration(
+                  labelText: 'End Date (optional, e.g., Jan 2024 or leave blank if ongoing)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (schoolController.text.trim().isNotEmpty && startDateController.text.trim().isNotEmpty) {
+                final educationData = {
+                  'school': schoolController.text.trim(),
+                  'degree': degreeController.text.trim().isEmpty ? null : degreeController.text.trim(),
+                  'field_of_study': fieldOfStudyController.text.trim().isEmpty ? null : fieldOfStudyController.text.trim(),
+                  'start_date': startDateController.text.trim(),
+                  'end_date': endDateController.text.trim().isEmpty ? null : endDateController.text.trim(),
+                  'description': descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+                };
+
+                if (education == null) {
+                  await _supabaseService.addEducation(_profileUser!.id, educationData);
+                } else {
+                  await _supabaseService.updateEducation(education['id'], educationData);
+                }
+
+                _loadProfile();
+                if (mounted) Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -1021,57 +1132,44 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 8),
 
-            // Education Section (Conditional)
-            if (displayUser.education.isNotEmpty) ...[
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(16),
-                width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Education', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        if (isOwner)
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.grey),
-                            onPressed: () {
-                              _editFieldDialog('Education', displayUser.education, (newVal) {
-                                setState(() => displayUser.education = newVal);
-                              });
-                            },
-                          )
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.school, color: Colors.grey),
+            // Education Section
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Education', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      if (isOwner)
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: () => _editEducationDialog(null),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('University / College', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text(displayUser.education, style: const TextStyle(fontSize: 14)),
-                            ],
-                          ),
-                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_educations.isNotEmpty)
+                    ..._educations.map((edu) => Column(
+                      children: [
+                        _buildEducationItem(edu, isOwner),
+                        if (_educations.last != edu) const Divider(),
                       ],
+                    )).toList(),
+                  if (_educations.isEmpty && isOwner)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'No education added yet.',
+                        style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+                      ),
                     ),
-                  ],
-                ),
+                ],
               ),
-              const SizedBox(height: 8),
-            ],
+            ),
 
             // Skills Section (Conditional)
             if (displayUser.skills.isNotEmpty) ...[
@@ -1160,6 +1258,100 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
+    );
+  }
+
+  // Helper widget to render education items
+  Widget _buildEducationItem(Map<String, dynamic> education, bool isOwner) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          color: Colors.grey[300],
+          child: const Icon(Icons.school, color: Colors.grey),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    education['school'] ?? 'Unknown School',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  if (isOwner)
+                    PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.more_vert, size: 16, color: Colors.grey[600]),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Edit', style: TextStyle(fontSize: 14)),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete', style: TextStyle(fontSize: 14, color: Colors.red)),
+                        ),
+                      ],
+                      onSelected: (value) async {
+                        if (value == 'edit') {
+                          _editEducationDialog(education);
+                        } else if (value == 'delete') {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete education'),
+                              content: const Text('Are you sure you want to delete this education?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await _supabaseService.deleteEducation(education['id']);
+                            _loadProfile();
+                          }
+                        }
+                      },
+                    ),
+                ],
+              ),
+              if (education['degree'] != null && education['degree'].isNotEmpty)
+                Text(
+                  education['degree'],
+                  style: const TextStyle(fontSize: 14),
+                ),
+              if (education['field_of_study'] != null && education['field_of_study'].isNotEmpty)
+                Text(
+                  education['field_of_study'],
+                  style: const TextStyle(fontSize: 14),
+                ),
+              Text(
+                '${education['start_date'] ?? 'Unknown'} - ${education['end_date'] ?? 'Present'}',
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              if (education['description'] != null && education['description'].isNotEmpty)
+                Text(
+                  education['description'],
+                  style: const TextStyle(fontSize: 14, height: 1.5, color: Colors.black),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -149,6 +149,38 @@ class SupabaseService {
         .eq('id', experienceId);
   }
 
+  // --- Education Logic ---
+  Future<void> addEducation(String userId, Map<String, dynamic> educationData) async {
+    await _client.from('educations').insert({
+      ...educationData,
+      'user_id': userId,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getEducations(String userId) async {
+    final List<dynamic> data = await _client
+        .from('educations')
+        .select()
+        .eq('user_id', userId)
+        .order('start_date', ascending: false);
+    
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<void> updateEducation(String educationId, Map<String, dynamic> educationData) async {
+    await _client
+        .from('educations')
+        .update(educationData)
+        .eq('id', educationId);
+  }
+
+  Future<void> deleteEducation(String educationId) async {
+    await _client
+        .from('educations')
+        .delete()
+        .eq('id', educationId);
+  }
+
   Future<String> uploadImage(String path, List<int> bytes) async {
     final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
     final storagePath = 'public/$fileName';
