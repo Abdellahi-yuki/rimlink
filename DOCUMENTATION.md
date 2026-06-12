@@ -23,12 +23,13 @@ RimLink is a professional networking mobile application inspired by LinkedIn, de
 - Add personal information (name, title, location, about section)
 - Upload profile pictures and banners
 - Set professional status (Open to Work, Hiring, Providing Services)
+- Connections count displayed on profile
 
 ### 📝 Posts & Content
 - Create, edit, and delete posts
 - Add images to posts
-- Like and comment on posts
-- View post details and comments
+- Like and unlike posts
+- Comment on posts with edit and delete support
 
 ### 💬 Comments System
 - Add comments to posts
@@ -38,22 +39,37 @@ RimLink is a professional networking mobile application inspired by LinkedIn, de
 ### 🔍 Networking & Connections
 - Search for other users by name or title
 - Send and receive connection requests
+- Cancel pending connection requests
 - Accept or reject connection requests
 - View your network connections
+- View sent and received invitations
 
 ### 💼 Professional Experience
 - Add and manage multiple work experiences
 - Edit experience details (title, company, location, dates, description)
-- Add education, skills, and other profile sections
+- Delete experience entries
+
+### 🎓 Education
+- Add and manage multiple education entries
+- Record school, degree, field of study, start/end dates, description
+- Edit and delete education entries
+
+### 💼 Job Listings
+- Browse job postings with company, location, description
+- Post new jobs with title, company, location, description, apply link
+- Edit and delete your own job postings
+- Save jobs for later
+- Open external apply links
 
 ### 📞 Contact Information
 - Add and edit contact info (email, phone)
 - View other users' contact information
-- Control visibility of contact details
+- Per-field privacy controls (email public, phone public)
 
 ### 🔐 Authentication
 - Secure user registration and login
 - Password management
+- Password reset via email
 - Profile settings and preferences
 
 ---
@@ -61,25 +77,33 @@ RimLink is a professional networking mobile application inspired by LinkedIn, de
 ## 🛠️ Technologies Used
 
 ### Frontend
-- **Framework**: Flutter (Dart)
-- **State Management**: Provider (built-in Flutter state management)
+- **Framework**: Flutter (Dart 3.x)
 - **UI Components**: Flutter Material Design
-- **Image Handling**: Image Picker, Network Image
+- **Image Handling**: image_picker, Network Image
 
 ### Backend
-- **Database & Authentication**: Supabase (PostgreSQL)
-- **API**: Supabase Client for Dart
+- **Database & Authentication**: Supabase (PostgreSQL with RLS)
+- **API**: supabase_flutter (Supabase Client for Dart)
 - **Storage**: Supabase Storage for images
+
+### Dependencies
+| Package | Version | Purpose |
+|---------|---------|---------|
+| flutter | SDK | UI framework |
+| supabase_flutter | ^2.12.4 | Supabase client (auth, database, storage, realtime) |
+| image_picker | ^1.1.2 | Camera/gallery image selection |
+| url_launcher | (transitive via supabase_flutter) | Open external URLs (job apply links) |
+| cupertino_icons | ^1.0.8 | iOS-style icons |
+| flutter_lints | ^6.0.0 (dev) | Lint rules |
 
 ### Development Tools
 - **IDE**: Android Studio / VS Code
 - **Version Control**: Git
 - **Build System**: Gradle
-- **CI/CD**: GitHub Actions (optional)
 
 ### Deployment
 - **Platform**: Android
-- **Distribution**: APK, Play Store (future)
+- **Distribution**: APK
 
 ---
 
@@ -97,7 +121,7 @@ Stores user profile information.
 | title | TEXT | Professional title | |
 | location | TEXT | User's location | |
 | about | TEXT | About/bio section | |
-| education | TEXT | Education history | |
+| education | TEXT | Education history (legacy) | |
 | skills | TEXT | User's skills | |
 | is_open_to_work | BOOLEAN | Job-seeking status | DEFAULT false |
 | is_hiring | BOOLEAN | Recruiter status | DEFAULT false |
@@ -105,6 +129,7 @@ Stores user profile information.
 | created_at | TIMESTAMP | Profile creation date | DEFAULT now() |
 | avatar_url | TEXT | Profile picture URL | |
 | banner_url | TEXT | Profile banner URL | |
+| connections | INTEGER | Auto-counted accepted connections | DEFAULT 0 |
 
 #### `contact_info`
 Stores user contact information with privacy controls.
@@ -132,6 +157,21 @@ Stores professional experience entries.
 | start_date | TEXT | Start date (e.g., "Jan 2020") | NOT NULL |
 | end_date | TEXT | End date (optional) | |
 | description | TEXT | Job description | |
+| created_at | TIMESTAMP | Record creation date | DEFAULT now() |
+
+#### `educations`
+Stores user education entries.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| id | UUID | Education ID | PRIMARY KEY, DEFAULT uuid_generate_v4() |
+| user_id | UUID | User ID (references profiles) | REFERENCES profiles(id) ON DELETE CASCADE |
+| school | TEXT | School/institution name | NOT NULL |
+| degree | TEXT | Degree obtained | |
+| field_of_study | TEXT | Field of study/major | |
+| start_date | TEXT | Start date (e.g., "Sep 2016") | NOT NULL |
+| end_date | TEXT | End date (optional) | |
+| description | TEXT | Additional details | |
 | created_at | TIMESTAMP | Record creation date | DEFAULT now() |
 
 #### `posts`
@@ -177,16 +217,24 @@ Manages user connections/network.
 | status | TEXT | Connection status | DEFAULT 'pending', CHECK (status IN ('pending', 'accepted', 'rejected')) |
 | created_at | TIMESTAMP | Request creation date | DEFAULT now() |
 
+**RLS Policies:**
+- `SELECT` — Users can see their own connections (requester or receiver)
+- `INSERT` — Only the requester can send connection requests
+- `UPDATE` — Only the receiver can accept/reject requests
+- `DELETE` — Only the requester can cancel their own pending requests
+
 #### `jobs`
 Stores job listings.
 
 | Column | Type | Description | Constraints |
 |--------|------|-------------|-------------|
 | id | UUID | Job ID | PRIMARY KEY, DEFAULT uuid_generate_v4() |
+| poster_id | UUID | User ID who posted the job | REFERENCES profiles(id) ON DELETE CASCADE |
 | title | TEXT | Job title | NOT NULL |
 | company | TEXT | Company name | NOT NULL |
 | location | TEXT | Job location | |
 | description | TEXT | Job description | |
+| apply_link | TEXT | External URL to apply | |
 | is_promoted | BOOLEAN | Promoted job status | DEFAULT false |
 | is_easy_apply | BOOLEAN | Easy apply status | DEFAULT false |
 | created_at | TIMESTAMP | Job creation date | DEFAULT now() |
@@ -271,6 +319,37 @@ $$;
 #### `handle_new_user()`
 Trigger function to create a profile when a new user signs up.
 
+#### `update_connections_count()`
+Trigger function to auto-update the `connections` count on the `profiles` table when connection requests are accepted, rejected, or deleted.
+
+```sql
+CREATE OR REPLACE FUNCTION public.update_connections_count()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' AND NEW.status = 'accepted' THEN
+    UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.requester_id;
+    UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.receiver_id;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF OLD.status != 'accepted' AND NEW.status = 'accepted' THEN
+      UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.requester_id;
+      UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.receiver_id;
+    ELSIF OLD.status = 'accepted' AND NEW.status != 'accepted' THEN
+      UPDATE public.profiles SET connections = connections - 1 WHERE id = NEW.requester_id;
+      UPDATE public.profiles SET connections = connections - 1 WHERE id = NEW.receiver_id;
+    END IF;
+  ELSIF TG_OP = 'DELETE' AND OLD.status = 'accepted' THEN
+    UPDATE public.profiles SET connections = connections - 1 WHERE id = OLD.requester_id;
+    UPDATE public.profiles SET connections = connections - 1 WHERE id = OLD.receiver_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+```
+
 ```sql
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
@@ -312,6 +391,12 @@ $$;
 - `updateExperience(experienceId, experienceData)` - Update an experience
 - `deleteExperience(experienceId)` - Delete an experience
 
+### Education Management
+- `addEducation(userId, educationData)` - Add new education entry
+- `getEducations(userId)` - Get all education entries for a user
+- `updateEducation(educationId, educationData)` - Update an education entry
+- `deleteEducation(educationId)` - Delete an education entry
+
 ### Posts
 - `createPost(content, imageUrls)` - Create a new post
 - `getPosts()` - Get all posts (with pagination)
@@ -340,6 +425,9 @@ $$;
 
 ### Jobs
 - `getJobs()` - Get all job listings
+- `postJob(jobData)` - Create a new job listing
+- `updateJob(jobId, jobData)` - Update a job listing
+- `deleteJob(jobId)` - Delete a job listing
 - `getSavedJobIds()` - Get IDs of saved jobs
 - `toggleSaveJob(jobId, currentlySaved)` - Save/unsave a job
 

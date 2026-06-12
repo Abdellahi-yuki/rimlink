@@ -789,8 +789,11 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _loadProfile,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
           children: [
             // Top Profile Card
             Container(
@@ -1268,8 +1271,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // Helper widget to render education items
   Widget _buildEducationItem(Map<String, dynamic> education, bool isOwner) {

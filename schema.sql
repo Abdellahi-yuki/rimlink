@@ -109,6 +109,34 @@ $$;
 
 ALTER FUNCTION "public"."update_comment_content"("comment_id" "uuid", "new_content" "text", "user_id" "uuid") OWNER TO "postgres";
 
+
+CREATE OR REPLACE FUNCTION "public"."update_connections_count"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' AND NEW.status = 'accepted' THEN
+    UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.requester_id;
+    UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.receiver_id;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF OLD.status != 'accepted' AND NEW.status = 'accepted' THEN
+      UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.requester_id;
+      UPDATE public.profiles SET connections = connections + 1 WHERE id = NEW.receiver_id;
+    ELSIF OLD.status = 'accepted' AND NEW.status != 'accepted' THEN
+      UPDATE public.profiles SET connections = connections - 1 WHERE id = NEW.requester_id;
+      UPDATE public.profiles SET connections = connections - 1 WHERE id = NEW.receiver_id;
+    END IF;
+  ELSIF TG_OP = 'DELETE' AND OLD.status = 'accepted' THEN
+    UPDATE public.profiles SET connections = connections - 1 WHERE id = OLD.requester_id;
+    UPDATE public.profiles SET connections = connections - 1 WHERE id = OLD.receiver_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_connections_count"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -137,6 +165,9 @@ CREATE TABLE IF NOT EXISTS "public"."connections" (
 
 
 ALTER TABLE "public"."connections" OWNER TO "postgres";
+
+
+CREATE TRIGGER "connections_count_trigger" AFTER INSERT OR UPDATE OR DELETE ON "public"."connections" FOR EACH ROW EXECUTE FUNCTION "public"."update_connections_count"();
 
 
 CREATE TABLE IF NOT EXISTS "public"."contact_info" (
@@ -239,7 +270,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "is_providing_services" boolean DEFAULT false,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
     "avatar_url" "text",
-    "banner_url" "text"
+    "banner_url" "text",
+    "connections" integer DEFAULT 0
 );
 
 
@@ -444,8 +476,10 @@ CREATE POLICY "Users can manage their saved jobs." ON "public"."saved_jobs" USIN
 CREATE POLICY "Users can see their own connections." ON "public"."connections" FOR SELECT USING ((("auth"."uid"() = "requester_id") OR ("auth"."uid"() = "receiver_id")));
 
 
-
 CREATE POLICY "Users can send connection requests." ON "public"."connections" FOR INSERT WITH CHECK (("auth"."uid"() = "requester_id"));
+
+
+CREATE POLICY "Users can cancel their own pending requests." ON "public"."connections" FOR DELETE USING ((("auth"."uid"() = "requester_id") AND ("status" = 'pending'::"text")));
 
 
 

@@ -330,7 +330,7 @@ class SupabaseService {
     await _client
         .from('connections')
         .delete()
-        .match({'requester_id': userId, 'receiver_id': targetUserId});
+        .match({'requester_id': userId, 'receiver_id': targetUserId, 'status': 'pending'});
   }
 
   Future<List<String>> getSentInvitationIds() async {
