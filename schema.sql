@@ -249,7 +249,8 @@ CREATE TABLE IF NOT EXISTS "public"."posts" (
     "content" "text" NOT NULL,
     "likes_count" integer DEFAULT 0,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "image_urls" "text"[] DEFAULT '{}'::"text"[]
+    "image_urls" "text"[] DEFAULT '{}'::"text"[],
+    "repost_of_id" "uuid"
 );
 
 
@@ -403,6 +404,9 @@ ALTER TABLE ONLY "public"."post_likes"
 
 ALTER TABLE ONLY "public"."posts"
     ADD CONSTRAINT "posts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+
+ALTER TABLE ONLY "public"."posts"
+    ADD CONSTRAINT "posts_repost_of_id_fkey" FOREIGN KEY ("repost_of_id") REFERENCES "public"."posts"("id") ON DELETE SET NULL;
 
 
 

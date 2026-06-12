@@ -29,6 +29,7 @@ RimLink is a professional networking mobile application inspired by LinkedIn, de
 - Create, edit, and delete posts
 - Add images to posts
 - Like and unlike posts
+- Repost other users' posts (shows "X reposted" header with original author)
 - Comment on posts with edit and delete support
 
 ### 💬 Comments System
@@ -185,6 +186,7 @@ Stores user posts and content.
 | likes_count | INTEGER | Number of likes | DEFAULT 0 |
 | created_at | TIMESTAMP | Post creation date | DEFAULT now() |
 | image_urls | TEXT[] | Array of image URLs | DEFAULT '{}' |
+| repost_of_id | UUID | Original post ID if repost | REFERENCES posts(id) ON DELETE SET NULL |
 
 #### `comments`
 Stores comments on posts.
@@ -403,6 +405,7 @@ $$;
 - `getUserPosts(userId)` - Get posts by a specific user
 - `updatePostContent(postId, content)` - Update post content
 - `deletePost(postId)` - Delete a post
+- `repostPost(postId)` - Repost an existing post (creates new post with repost_of_id reference)
 - `toggleLike(postId, currentlyLiked)` - Like/unlike a post
 
 ### Comments

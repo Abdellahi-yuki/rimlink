@@ -22,10 +22,6 @@ class AccountPreferencesPage extends StatelessWidget {
           _buildItem('Name, location, and industry', onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const NameLocationIndustryPage()));
           }),
-          _buildCategoryHeader('Display'),
-          _buildItem('Dark mode', subtitle: 'Light', onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const DarkModePage()));
-          }),
         ],
       ),
     );
@@ -95,6 +91,8 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
       isOpenToWork: _user!.isOpenToWork,
       isHiring: _user!.isHiring,
       isProvidingServices: _user!.isProvidingServices,
+      avatarUrl: _user!.avatarUrl,
+      bannerUrl: _user!.bannerUrl,
     );
 
     await _supabaseService.updateProfile(updatedUser);
@@ -154,71 +152,6 @@ class _NameLocationIndustryPageState extends State<NameLocationIndustryPage> {
               ],
             ),
           ),
-    );
-  }
-}
-
-class DarkModePage extends StatefulWidget {
-  const DarkModePage({super.key});
-
-  @override
-  State<DarkModePage> createState() => _DarkModePageState();
-}
-
-class _DarkModePageState extends State<DarkModePage> {
-  String _selectedMode = 'Light mode';
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Dark mode', style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Select how your LinkedIn experience looks on this device.',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
-          ),
-          RadioListTile<String>(
-            title: const Text('Device settings'),
-            value: 'Device settings',
-            groupValue: _selectedMode,
-            onChanged: (val) => setState(() => _selectedMode = val!),
-          ),
-          RadioListTile<String>(
-            title: const Text('Dark mode'),
-            value: 'Dark mode',
-            groupValue: _selectedMode,
-            onChanged: (val) => setState(() => _selectedMode = val!),
-          ),
-          RadioListTile<String>(
-            title: const Text('Light mode'),
-            value: 'Light mode',
-            groupValue: _selectedMode,
-            onChanged: (val) => setState(() => _selectedMode = val!),
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Theme set to $_selectedMode')));
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, padding: const EdgeInsets.symmetric(horizontal: 32)),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
-            ),
-          )
-        ],
-      ),
     );
   }
 }

@@ -120,6 +120,23 @@ class _FeedPageState extends State<FeedPage> {
                         post: post,
                         onTap: () => _navigateAndRefresh(context, PostDetailPage(post: post)),
                         onProfileTap: () => _navigateAndRefresh(context, ProfilePage(user: post.author)),
+                        onRepost: () async {
+                          try {
+                            await _supabaseService.repostPost(post.id);
+                            _refreshPosts();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Post reposted')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                          }
+                        },
                       );
                     },
                   ),

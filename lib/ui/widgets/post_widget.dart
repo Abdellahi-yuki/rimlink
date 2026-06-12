@@ -8,6 +8,7 @@ class PostWidget extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onProfileTap;
   final VoidCallback? onMenuPressed;
+  final VoidCallback? onRepost;
   final bool showMenu;
 
   const PostWidget({
@@ -16,6 +17,7 @@ class PostWidget extends StatefulWidget {
     this.onTap,
     this.onProfileTap,
     this.onMenuPressed,
+    this.onRepost,
     this.showMenu = false,
   });
 
@@ -51,6 +53,9 @@ class _PostWidgetState extends State<PostWidget> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final isRepost = post.repostOfId != null && post.originalAuthor != null;
+    final displayAuthor = isRepost ? post.originalAuthor! : post.author;
+    final avatarColor = Colors.primaries[displayAuthor.name.length % Colors.primaries.length];
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -58,41 +63,57 @@ class _PostWidgetState extends State<PostWidget> {
       color: Colors.white,
       child: InkWell(
         onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Post header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: widget.onProfileTap,
-                      child: CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.primaries[post.author.name.length % Colors.primaries.length],
-                        backgroundImage: post.author.avatarUrl != null ? NetworkImage(post.author.avatarUrl!) : null,
-                        child: post.author.avatarUrl == null
-                          ? Text(
-                              post.author.name.substring(0, 1),
-                              style: const TextStyle(color: Colors.white, fontSize: 20),
-                            )
-                          : null,
-                      ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Repost header
+                if (isRepost)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.repeat, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${post.author.name} reposted',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
                     ),
+                  ),
+
+                // Post header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: widget.onProfileTap,
+                        child: CircleAvatar(
+                          radius: 24,
+                          backgroundColor: avatarColor,
+                          backgroundImage: displayAuthor.avatarUrl != null ? NetworkImage(displayAuthor.avatarUrl!) : null,
+                          child: displayAuthor.avatarUrl == null
+                            ? Text(
+                                displayAuthor.name.substring(0, 1),
+                                style: const TextStyle(color: Colors.white, fontSize: 20),
+                              )
+                            : null,
+                        ),
+                      ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            post.author.name,
+                            displayAuthor.name,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           Text(
-                            post.author.title,
+                            displayAuthor.title,
                             style: TextStyle(color: Colors.grey[600], fontSize: 12),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -230,7 +251,7 @@ class _PostWidgetState extends State<PostWidget> {
                     icon: Icons.repeat,
                     label: 'Repost',
                     color: Colors.grey[600]!,
-                    onTap: () {},
+                    onTap: widget.onRepost ?? () {},
                   ),
                 ],
               ),

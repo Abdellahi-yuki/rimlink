@@ -164,6 +164,22 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
               MaterialPageRoute(builder: (context) => ProfilePage(user: post.author)),
             );
           },
+          onRepost: () async {
+            try {
+              await _supabaseService.repostPost(post.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Post reposted')),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            }
+          },
         );
       },
     );

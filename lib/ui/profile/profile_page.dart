@@ -1261,6 +1261,22 @@ class _ProfilePageState extends State<ProfilePage> {
                         // Already on profile page, maybe just scroll to top?
                         // Or do nothing if it's the same user.
                       },
+                      onRepost: () async {
+                        try {
+                          await _supabaseService.repostPost(post.id);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Post reposted')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        }
+                      },
                     )),
                 ],
               ),

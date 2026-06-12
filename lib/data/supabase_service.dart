@@ -198,10 +198,9 @@ class SupabaseService {
   // --- Post Logic ---
   Future<List<Post>> getPosts() async {
     final userId = currentUserId;
-    // Select posts and join with profiles (author) and post_likes (for current user)
     var query = _client
         .from('posts')
-        .select('*, author:profiles!author_id(*), post_likes(user_id), comments(count)');
+        .select('*, author:profiles!author_id(*), post_likes(user_id), comments(count), reposted_post:repost_of_id(*, original_author:profiles!author_id(*))');
     
     if (userId != null) {
       query = query.eq('post_likes.user_id', userId);
@@ -228,11 +227,30 @@ class SupabaseService {
     });
   }
 
+  Future<void> repostPost(String postId) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    // Fetch original post content and images to include in the repost
+    final original = await _client
+        .from('posts')
+        .select('content, image_urls')
+        .eq('id', postId)
+        .single();
+
+    await _client.from('posts').insert({
+      'author_id': userId,
+      'content': original['content'],
+      'image_urls': original['image_urls'] ?? [],
+      'repost_of_id': postId,
+    });
+  }
+
   Future<List<Post>> getUserPosts(String userId) async {
     final currentUserId = this.currentUserId;
     final List<dynamic> data = await _client
         .from('posts')
-        .select('*, author:profiles!author_id(*), post_likes(user_id), comments(count)')
+        .select('*, author:profiles!author_id(*), post_likes(user_id), comments(count), reposted_post:repost_of_id(*, original_author:profiles!author_id(*))')
         .eq('author_id', userId)
         .order('created_at', ascending: false);
 

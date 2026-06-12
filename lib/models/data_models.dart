@@ -173,8 +173,6 @@ class User {
       'is_providing_services': isProvidingServices,
       'avatar_url': avatarUrl,
       'banner_url': bannerUrl,
-      'email': email,
-      'phone': phone,
     };
   }
 }
@@ -220,6 +218,10 @@ class Post {
   bool isLiked;
   final int commentsCount;
   final List<String> imageUrls;
+  final String? repostOfId;
+  final User? originalAuthor;
+  final String? originalContent;
+  final List<String> originalImageUrls;
 
   Post({
     required this.id,
@@ -230,13 +232,28 @@ class Post {
     this.isLiked = false,
     required this.commentsCount,
     this.imageUrls = const [],
+    this.repostOfId,
+    this.originalAuthor,
+    this.originalContent,
+    this.originalImageUrls = const [],
   });
 
   factory Post.fromMap(Map<String, dynamic> map, User author, {bool isLiked = false}) {
-    // Check for nested count from Supabase: comments(count) returns [{count: X}]
     int cCount = 0;
     if (map['comments'] != null && map['comments'] is List && (map['comments'] as List).isNotEmpty) {
       cCount = map['comments'][0]['count'] ?? 0;
+    }
+
+    User? origAuthor;
+    String? origContent;
+    List<String> origImages = [];
+    if (map['reposted_post'] != null) {
+      final reposted = map['reposted_post'] as Map<String, dynamic>;
+      if (reposted['original_author'] != null) {
+        origAuthor = User.fromMap(reposted['original_author']);
+      }
+      origContent = reposted['content'];
+      origImages = List<String>.from(reposted['image_urls'] ?? []);
     }
 
     return Post(
@@ -248,6 +265,10 @@ class Post {
       isLiked: isLiked,
       commentsCount: cCount,
       imageUrls: List<String>.from(map['image_urls'] ?? []),
+      repostOfId: map['repost_of_id'],
+      originalAuthor: origAuthor,
+      originalContent: origContent,
+      originalImageUrls: origImages,
     );
   }
 
