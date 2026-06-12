@@ -76,6 +76,242 @@ RimLink is a professional networking mobile application inspired by LinkedIn, de
 
 ---
 
+## 📁 Project Structure
+
+```
+rimlink/
+├── lib/
+│   ├── main.dart                          # App entry point, MaterialApp, auth wrapper
+│   ├── l10n/                              # Localization system (Flutter gen-l10n)
+│   │   ├── app_en.arb                     # English strings (~190 keys)
+│   │   ├── app_ar.arb                     # Arabic translations
+│   │   ├── app_fr.arb                     # French translations
+│   │   ├── app_localizations.dart         # Generated abstract class
+│   │   ├── app_localizations_en.dart      # Generated English impl
+│   │   ├── app_localizations_ar.dart      # Generated Arabic impl
+│   │   └── app_localizations_fr.dart      # Generated French impl
+│   ├── models/
+│   │   └── data_models.dart               # ContactInfo, Experience, User, Comment, Post, Job
+│   ├── data/
+│   │   ├── locale_service.dart            # Singleton ChangeNotifier, persists locale to SharedPreferences
+│   │   ├── supabase_service.dart          # All Supabase queries, mutations, RPC calls
+│   │   └── mock_data.dart                 # Static mock data for development
+│   └── ui/
+│       ├── main_navigation.dart           # Bottom navigation bar (4 tabs)
+│       ├── auth/
+│       │   └── login_signup_page.dart     # Login/register screen with email+password
+│       ├── feed/
+│       │   ├── feed_page.dart             # Main feed — lists all posts chronologically
+│       │   ├── create_post_page.dart      # Compose new post with image picker
+│       │   ├── post_detail_page.dart      # Single post view with comments thread
+│       │   └── search_page.dart           # Tabbed search (People / Posts) with results lists
+│       ├── jobs/
+│       │   ├── jobs_page.dart             # Job listings with search bar, filter, post dialog, job cards
+│       │   └── job_detail_page.dart       # Single job view with edit, apply, save actions
+│       ├── network/
+│       │   ├── network_page.dart          # People suggestions, sent invites, connections list
+│       │   └── invitations_page.dart      # Pending connection requests (accept/reject)
+│       ├── profile/
+│       │   ├── profile_page.dart          # Full profile view with sections (about, experience, education, skills, activity, open-to-work/hiring/services badges, contact info modal)
+│       │   ├── settings_page.dart         # Settings menu (account prefs, security, sign out)
+│       │   └── settings_subpages.dart     # AccountPreferencesPage, NameLocationIndustryPage, SecurityPage, EmailAddressesPage, ChangePasswordPage, VisibilityPage, NotificationsSettingsPage + language picker dialog
+│       └── widgets/
+│           ├── post_widget.dart           # Reusable post card (header, content, images, actions)
+│           └── full_screen_image_viewer.dart  # Swipeable full-screen image gallery
+├── test/
+│   └── widget_test.dart                   # Smoke test for MaterialApp
+├── android/                               # Android platform configuration
+├── ios/                                   # iOS platform configuration
+├── supabase/                              # SQL migrations
+├── pubspec.yaml                           # Dependencies, version 1.1.0
+├── l10n.yaml                              # gen-l10n config (arb-dir, template-arb-file)
+├── analysis_options.yaml                  # Dart linter rules
+├── flutter_launcher_icons.yaml           # App icon generation config
+└── schema.sql                             # Full Supabase schema (tables, RLS, triggers, functions)
+```
+
+---
+
+<section id="-widgets-and-pages">
+
+## 📱 Widgets & Pages Reference
+
+### Entry Point & Navigation
+
+| File | Class | Type | Purpose | Key Methods/Props |
+|---|---|---|---|---|
+| `main.dart` | `RimlinkApp` | `StatefulWidget` | Root widget, holds `LocaleService`, configures `MaterialApp` with locale delegates | `locale` from `LocaleService`, `supportedLocales`, `localizationsDelegates` |
+| `main.dart` | `AuthWrapper` | `StatefulWidget` | Checks auth state, routes to `MainNavigation` or `LoginSignupPage` | Listens to `onAuthStateChange` |
+| `main_navigation.dart` | `MainNavigation` | `StatefulWidget` | 4-tab bottom navigation (`IndexedStack`): Feed, Network, Jobs, Profile | `_currentIndex`, `_onTabTapped(int)` |
+
+### Auth
+
+| File | Class | Purpose | Key Features |
+|---|---|---|---|
+| `login_signup_page.dart` | `LoginSignupPage` | Sign in / register toggle form | Email+password auth, full-name on signup, error display, loading state |
+
+### Feed
+
+| File | Class | Purpose | Key Methods |
+|---|---|---|---|
+| `feed_page.dart` | `FeedPage` | Chronological post list with pull-to-refresh | `_refreshPosts()`, `_showPostOptions(Post)`, `_navigateAndRefresh()` |
+| `create_post_page.dart` | `CreatePostPage` | Compose post with optional images | `_pickImages()`, `_post()` — uses `image_picker`, uploads to Supabase Storage |
+| `post_detail_page.dart` | `PostDetailPage` | Single post detail + comments thread | `_addComment()`, `_editCommentDialog(Comment)`, `_buildActionButton()` |
+| `search_page.dart` | `SearchPage` | Tabbed search (People / Posts) | `_performSearch(String)`, `_buildUserResults()`, `_buildPostResults()` |
+
+### Jobs
+
+| File | Class | Purpose | Key Methods |
+|---|---|---|---|
+| `jobs_page.dart` | `JobsPage` | Job listings with search bar, saved filter, post dialog | `_loadJobs()`, `_searchQuery` filtering, `_showPostJobDialog()`, `_buildJobCard(Job)`, `_buildPillButton()` |
+| `job_detail_page.dart` | `JobDetailPage` | View/edit/delete job, apply via URL, save toggle | `_editJob()`, `_applyForJob()`, `_toggleSave()` |
+
+### Network
+
+| File | Class | Purpose | Key Methods |
+|---|---|---|---|
+| `network_page.dart` | `NetworkPage` | People suggestions, sent invites, active connections | `_loadData()`, `_cancelInvitation(User)`, `_sendInvitation(User)`, `_buildFullUserCard()` |
+| `invitations_page.dart` | `InvitationsPage` | Pending connection requests with accept/reject | `_respond(requesterId, status)` |
+
+### Profile
+
+| File | Class | Purpose | Key Methods |
+|---|---|---|---|
+| `profile_page.dart` | `ProfilePage` | Full profile: banner/avatar, contact info, about, experience, education, skills, activity, open-to-work/hiring/services | `_loadProfile()`, `_saveProfile()`, `_pickAndUploadImage(bool isAvatar)`, `_editFieldDialog()`, `_editContactInfoDialog()`, `_showOpenToModal()`, `_showAddSectionModal()`, `_editExperienceDialog()`, `_editEducationDialog()`, `_showContactInfoModal()`, `_showPostOptions()`, `_buildBadgeBanner()` |
+| `settings_page.dart` | `SettingsPage` | Settings menu with account prefs, security, sign out | `_buildSettingTile()` |
+| `settings_subpages.dart` | `AccountPreferencesPage` | Name/location/industry editing + language picker | Routes to `NameLocationIndustryPage`, shows language dialog |
+| | `NameLocationIndustryPage` | Edit name, location, industry fields | `_loadProfile()`, `_save()` |
+| | `SecurityPage` | Account access section (email, password) | Routes to `EmailAddressesPage`, `ChangePasswordPage` |
+| | `EmailAddressesPage` | View primary email, placeholder for add-email | Shows current auth email |
+| | `ChangePasswordPage` | Change password form with validation | `_save()` validates match + min length, calls Supabase |
+| | `VisibilityPage` | *(placeholder)* Profile visibility settings | N/A |
+| | `NotificationsSettingsPage` | *(placeholder)* Notification preferences | N/A |
+
+### Shared Widgets
+
+| File | Class | Purpose | Props |
+|---|---|---|---|
+| `post_widget.dart` | `PostWidget` | Reusable post card with header, content, images, stats, action buttons | `post`, `onTap`, `onProfileTap`, `onMenuPressed`, `onRepost`, `showMenu` |
+| `full_screen_image_viewer.dart` | `FullScreenImageViewer` | Swipeable image gallery with page indicator | `imageUrls`, `initialIndex` |
+
+---
+
+<section id="-localization">
+
+## 🌐 Localization System
+
+RimLink supports **3 languages** with Flutter's built-in `gen-l10n` tool:
+
+| Language | Code | File |
+|---|---|---|
+| English | `en` | `lib/l10n/app_en.arb` |
+| Arabic (RTL) | `ar` | `lib/l10n/app_ar.arb` |
+| French | `fr` | `lib/l10n/app_fr.arb` |
+
+### Architecture
+
+1. **Source of truth**: `.arb` files in `lib/l10n/` — each key has an English value, with `@key` blocks for descriptions and plural placeholders
+2. **Code generation**: Run `flutter gen-l10n` to produce `app_localizations.dart`, `app_localizations_en.dart`, `app_localizations_ar.dart`, `app_localizations_fr.dart`
+3. **Usage**: `AppLocalizations.of(context)!.someKey` in all widgets; plural methods accept `int` args (e.g., `connectionCount(5)`)
+4. **Locale persistence**: `LocaleService` (singleton `ChangeNotifier`) saves the language code to `SharedPreferences` and calls `notifyListeners()`; `RimlinkApp` listens and rebuilds `MaterialApp` with the new `locale`
+5. **Language picker**: `_showLanguagePicker()` dialog in `settings_subpages.dart` with radio buttons for English / العربية / Français
+
+### Adding a new locale
+1. Create `app_xx.arb` in `lib/l10n/` with all keys
+2. Add `"xx"` label key to all ARB files
+3. Run `flutter gen-l10n`
+4. Add the option to the language picker dialog in `settings_subpages.dart`
+
+---
+
+<section id="-state-management">
+
+## ⚡ State Management
+
+The app uses **built-in Flutter state management** (no external libraries):
+
+- **`setState`** in every `StatefulWidget` for local UI state (loading, form values, search query, etc.)
+- **`LocaleService`** (extends `ChangeNotifier`) for global locale state — singleton accessed via `LocaleService.instance` or `LocaleService()` factory; `RimlinkApp` subscribes via `addListener`
+- **No Provider, Riverpod, Bloc, or Redux** — state is intentionally kept simple and widget-local
+
+---
+
+<section id="-supabase-service">
+
+## 🔌 SupabaseService API Reference
+
+(`lib/data/supabase_service.dart`) — all database operations go through this class.
+
+### Auth
+- `currentAuthUser` — returns `sb.User?`
+- `currentUserId` — returns `String?`
+- `changePassword(String newPassword)` — calls `supabase.auth.updateUser()`
+
+### Profile
+- `getCurrentUserProfile()` — `SELECT * FROM profiles WHERE id = auth.uid()`
+- `getProfileById(String id)` — `SELECT * FROM profiles WHERE id = $id` (with nested contact_info)
+- `updateProfile(User user)` — `UPDATE profiles SET ... WHERE id = $id`
+- `updateProfileField(String field, String value)` — update single column
+- `uploadImage(String path, List<int> bytes)` — upload to `rimlink` storage bucket, return public URL
+
+### Experience
+- `getExperiences(String userId)` → `List<Map>`
+- `addExperience(userId, data)`, `updateExperience(id, data)`, `deleteExperience(id)`
+
+### Education
+- `getEducations(String userId)` → `List<Map>`
+- `addEducation(userId, data)`, `updateEducation(id, data)`, `deleteEducation(id)`
+
+### Posts
+- `getPosts()` — joins `author`, `post_likes`, `reposted_post` with nested `original_author`
+- `createPost(content, {imageUrls})` — `INSERT INTO posts`
+- `repostPost(postId)` — creates a new post with `repost_of_id` referencing original
+- `getUserPosts(userId)`, `updatePostContent(id, content)`, `deletePost(id)`
+- `toggleLike(postId, currentlyLiked)` — upsert/delete `post_likes` + call `increment_likes`/`decrement_likes` RPC
+- `searchPosts(query)` — `ILIKE '%query%'` on content
+
+### Comments
+- `getComments(postId)` — joins `author` profile
+- `addComment(postId, content)`, `updateComment(commentId, content)` (via RPC `update_comment_content`), `deleteComment(commentId)`
+
+### Network
+- `searchUsers(String query)` — `ILIKE` match on name or title
+- `sendConnectionRequest(targetId)` — `INSERT INTO connections (requester_id, receiver_id, status='pending')`
+- `cancelConnectionRequest(targetId)` — `DELETE` pending request
+- `respondToConnectionRequest(requesterId, status)` — `UPDATE connections SET status` (accept/reject)
+- `getConnectionStatus(targetUserId)` → `'sent'`, `'received'`, `'accepted'`, or `null`
+- `getConnections()` — all accepted connections (both sides)
+- `getPendingInvitations()` — requests where current user is receiver
+- `getSentInvitations()` — requests where current user is requester
+- `getPeopleYouMayKnow()` — profiles not connected and not self, excluding those with pending requests
+
+### Jobs
+- `getJobs()` → `List<Map>` — all jobs ordered by newest
+- `postJob(data)`, `updateJob(id, data)`, `deleteJob(id)`
+- `getSavedJobIds()` → `List<String>` — IDs of jobs saved by current user
+- `toggleSaveJob(jobId, currentlySaved)` — upsert/delete `saved_jobs`
+
+### Contact Info
+- `getContactInfo(userId)` → `Map?` — email, phone, is_email_public, is_phone_public
+- `updateContactInfo(userId, data)` — `UPSERT` on `contact_info`
+
+---
+
+<section id="-models">
+
+## 📦 Data Models (`lib/models/data_models.dart`)
+
+| Model | Fields | Notes |
+|---|---|---|
+| `ContactInfo` | `email`, `phone` | Simple two-field model for contact_info table |
+| `Experience` | `id`, `title`, `company`, `location`, `startDate`, `endDate?`, `description` | `fromMap` maps `start_date`/`end_date` snake_case |
+| `User` | `id`, `name`, `title`, `location`, `about`, `experience`, `education`, `skills`, `connections`, `isOpenToWork`, `isHiring`, `isProvidingServices`, `avatarUrl?`, `bannerUrl?`, `email?`, `phone?` | Has `copyWith()` for immutable updates |
+| `Comment` | `id`, `author` (User), `content`, `createdAt` | `timeAgo` getter: `Now` / `5m` / `3h` / `2d` / `1w` |
+| `Post` | `id`, `author`, `createdAt`, `content`, `likesCount`, `isLiked`, `commentsCount`, `imageUrls`, `repostOfId?`, `originalAuthor?`, `originalContent?`, `originalImageUrls` | `fromMap` handles repost join, comments aggregate |
+| `Job` | `id`, `title`, `company`, `location`, `description`, `isEasyApply`, `isPromoted`, `applyLink`, `posterId`, `createdAt` | `timeAgo`: `Just now` / `5h ago` / `3d ago` |
+
+---
+
 ## 🛠️ Technologies Used
 
 ### Frontend
@@ -524,11 +760,7 @@ Database migrations are in `supabase/migrations/`. Apply them in order via the S
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-### Code Style
+## Code Style
 - Follow Dart/Flutter style guidelines
 - Use meaningful variable and function names
 - Add comments for complex logic

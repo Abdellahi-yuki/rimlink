@@ -59,6 +59,24 @@ $$;
 ALTER FUNCTION "public"."decrement_likes"("post_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_verified_user_ids"() RETURNS "uuid"[]
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  result uuid[];
+BEGIN
+  SELECT array_agg(id) INTO result
+  FROM auth.users
+  WHERE email_confirmed_at IS NOT NULL;
+  RETURN result;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_verified_user_ids"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -469,7 +487,8 @@ CREATE POLICY "Users can cancel their own pending requests." ON "public"."connec
 CREATE POLICY "Users can delete own posts." ON "public"."posts" FOR DELETE USING (("auth"."uid"() = "author_id"));
 
 
-CREATE POLICY "Users can update own posts." ON "public"."posts" FOR UPDATE USING (("auth"."uid"() = "author_id"));
+
+CREATE POLICY "Users can delete their own comments." ON "public"."comments" FOR DELETE USING (("auth"."uid"() = "author_id"));
 
 
 
@@ -502,6 +521,10 @@ CREATE POLICY "Users can see their own connections." ON "public"."connections" F
 
 
 CREATE POLICY "Users can send connection requests." ON "public"."connections" FOR INSERT WITH CHECK (("auth"."uid"() = "requester_id"));
+
+
+
+CREATE POLICY "Users can update own posts." ON "public"."posts" FOR UPDATE USING (("auth"."uid"() = "author_id"));
 
 
 
@@ -725,6 +748,12 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT ALL ON FUNCTION "public"."decrement_likes"("post_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."decrement_likes"("post_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."decrement_likes"("post_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_verified_user_ids"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_verified_user_ids"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_verified_user_ids"() TO "service_role";
 
 
 
