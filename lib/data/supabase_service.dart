@@ -303,10 +303,24 @@ class SupabaseService {
     }
   }
 
+  Future<Set<String>> getVerifiedUserIds() async {
+    try {
+      final ids = await _client.rpc('get_verified_user_ids');
+      if (ids == null || ids is! List) return {};
+      return ids.cast<String>().toSet();
+    } catch (e) {
+      debugPrint('Error fetching verified user IDs: $e');
+      return {};
+    }
+  }
+
   // --- Network/Connections Logic ---
   Future<List<User>> getPeopleYouMayKnow() async {
     final userId = currentUserId;
     if (userId == null) return [];
+
+    final verifiedIds = await getVerifiedUserIds();
+    if (verifiedIds.isEmpty) return [];
 
     // 1. Get all user IDs involved in any connection with the current user
     final List<dynamic> connections = await _client
@@ -320,11 +334,12 @@ class SupabaseService {
       excludedIds.add(conn['receiver_id']);
     }
 
-    // 2. Get profiles not in the excluded list
+    // 2. Get verified profiles not in the excluded list
     final List<dynamic> data = await _client
         .from('profiles')
         .select()
         .not('id', 'in', excludedIds)
+        .inFilter('id', verifiedIds.toList())
         .limit(15);
 
     return data.map<User>((json) => User.fromMap(json)).toList();
@@ -368,18 +383,26 @@ class SupabaseService {
     final userId = currentUserId;
     if (userId == null) return [];
 
+    final verifiedIds = await getVerifiedUserIds();
+    if (verifiedIds.isEmpty) return [];
+
     final List<dynamic> data = await _client
         .from('connections')
         .select('*, receiver:profiles!receiver_id(*)')
         .eq('requester_id', userId)
         .eq('status', 'pending');
     
-    return data.map<User>((json) => User.fromMap(json['receiver'])).toList();
+    return data.map<User>((json) => User.fromMap(json['receiver']))
+        .where((user) => verifiedIds.contains(user.id))
+        .toList();
   }
 
   Future<List<User>> getConnections() async {
     final userId = currentUserId;
     if (userId == null) return [];
+
+    final verifiedIds = await getVerifiedUserIds();
+    if (verifiedIds.isEmpty) return [];
 
     final List<dynamic> data = await _client
         .from('connections')
@@ -393,7 +416,7 @@ class SupabaseService {
       } else {
         return User.fromMap(json['requester']);
       }
-    }).toList();
+    }).where((user) => verifiedIds.contains(user.id)).toList();
   }
 
   Future<String?> getConnectionStatus(String targetUserId) async {
@@ -426,10 +449,14 @@ class SupabaseService {
   }
 
   Future<List<User>> searchUsers(String query) async {
+    final verifiedIds = await getVerifiedUserIds();
+    if (verifiedIds.isEmpty) return [];
+
     final List<dynamic> data = await _client
         .from('profiles')
         .select()
         .or('name.ilike.%$query%,title.ilike.%$query%')
+        .inFilter('id', verifiedIds.toList())
         .limit(20);
     
     return data.map<User>((json) => User.fromMap(json)).toList();
@@ -647,13 +674,18 @@ class SupabaseService {
     final userId = currentUserId;
     if (userId == null) return [];
 
+    final verifiedIds = await getVerifiedUserIds();
+    if (verifiedIds.isEmpty) return [];
+
     final List<dynamic> data = await _client
         .from('connections')
         .select('*, requester:profiles!requester_id(*)')
         .eq('receiver_id', userId)
         .eq('status', 'pending');
     
-    return data.map<User>((json) => User.fromMap(json['requester'])).toList();
+    return data.map<User>((json) => User.fromMap(json['requester']))
+        .where((user) => verifiedIds.contains(user.id))
+        .toList();
   }
 
   Future<void> respondToConnectionRequest(String requesterId, String status) async {
