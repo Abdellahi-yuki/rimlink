@@ -13,15 +13,23 @@ class JobsPage extends StatefulWidget {
 
 class _JobsPageState extends State<JobsPage> {
   final SupabaseService _supabaseService = SupabaseService();
+  final TextEditingController _searchController = TextEditingController();
   bool _showSavedOnly = false;
   List<Job> _allJobs = [];
   List<String> _savedJobIds = [];
   bool _isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _loadJobs();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadJobs() async {
@@ -49,9 +57,19 @@ class _JobsPageState extends State<JobsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final displayJobs = _showSavedOnly 
-        ? _allJobs.where((j) => _savedJobIds.contains(j.id)).toList() 
-        : _allJobs;
+    final displayJobs = () {
+      var jobs = _showSavedOnly
+          ? _allJobs.where((j) => _savedJobIds.contains(j.id)).toList()
+          : _allJobs;
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        jobs = jobs.where((j) =>
+            j.title.toLowerCase().contains(q) ||
+            j.company.toLowerCase().contains(q) ||
+            j.location.toLowerCase().contains(q)).toList();
+      }
+      return jobs;
+    }();
 
     return Scaffold(
       backgroundColor: Colors.grey[300],
@@ -59,6 +77,8 @@ class _JobsPageState extends State<JobsPage> {
         title: SizedBox(
           height: 36,
           child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search, size: 20, color: Colors.black54),
               hintText: AppLocalizations.of(context)!.searchJobs,
