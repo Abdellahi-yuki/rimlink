@@ -69,7 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _profileUser = await _supabaseService.getCurrentUserProfile();
     }
     
-    if (_profileUser != null) {
+      if (_profileUser != null) {
       // Load experiences
       final experiences = await _supabaseService.getExperiences(_profileUser!.id);
       if (mounted) {
@@ -83,6 +83,14 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         setState(() {
           _educations = educations;
+        });
+      }
+      
+      // Reload profile to get updated connections count
+      final updatedProfile = await _supabaseService.getProfileById(_profileUser!.id);
+      if (mounted && updatedProfile != null) {
+        setState(() {
+          _profileUser = updatedProfile;
         });
       }
       
@@ -831,32 +839,33 @@ class _ProfilePageState extends State<ProfilePage> {
                                         style: const TextStyle(fontSize: 16),
                                       ),
                                       const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            displayUser.location,
-                                            style: const TextStyle(color: Colors.grey, fontSize: 14),
-                                          ),
-                                          const SizedBox(width: 8),
-                                        InkWell(
-                                              onTap: () async {
-                                                final contactInfo = await _supabaseService.getContactInfo(displayUser.id);
-                                                if (mounted) {
-                                                  _showContactInfoModal(displayUser, isOwner, contactInfo);
-                                                }
-                                              },
-                                              child: const Text(
-                                                'Contact info',
-                                                style: TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
+                                       Row(
+                                         children: [
+                                           if (displayUser.location.isNotEmpty)
+                                             Text(
+                                               displayUser.location,
+                                               style: const TextStyle(color: Colors.grey, fontSize: 14),
+                                             ),
+                                           if (displayUser.location.isNotEmpty) const SizedBox(width: 8),
+                                           InkWell(
+                                             onTap: () async {
+                                               final contactInfo = await _supabaseService.getContactInfo(displayUser.id);
+                                               if (mounted) {
+                                                 _showContactInfoModal(displayUser, isOwner, contactInfo);
+                                               }
+                                             },
+                                             child: const Text(
+                                               'Contact info',
+                                               style: TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold, fontSize: 14),
+                                             ),
+                                           ),
+                                         ],
+                                       ),
                                       const SizedBox(height: 12),
-                                      Text(
-                                        '${displayUser.connections}+ connections',
-                                        style: const TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold),
-                                      ),
+                                       Text(
+                                         '${displayUser.connections} connection${displayUser.connections != 1 ? 's' : ''}',
+                                         style: const TextStyle(color: Color(0xFF0A66C2), fontWeight: FontWeight.bold),
+                                       ),
                                     ],
                                   ),
                                 ),

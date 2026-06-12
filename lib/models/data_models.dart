@@ -72,7 +72,7 @@ class User {
   String experience;
   String education;
   String skills;
-  final int connections;
+  int connections;
   bool isOpenToWork;
   bool isHiring;
   bool isProvidingServices;
