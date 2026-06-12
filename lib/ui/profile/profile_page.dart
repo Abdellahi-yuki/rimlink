@@ -1205,13 +1205,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const Divider(),
-                    const Row(
-                      children: [
-                        Icon(Icons.people, size: 16, color: Colors.grey),
-                        SizedBox(width: 8),
-                        Text('Endorsed by multiple connections', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
+                    if (isOwner)
+                      const Row(
+                        children: [
+                          Icon(Icons.people, size: 16, color: Colors.grey),
+                          SizedBox(width: 8),
+                          Text('Endorsed by multiple connections', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        ],
+                      ),
                   ],
                 ),
               ),

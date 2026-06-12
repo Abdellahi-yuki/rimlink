@@ -444,7 +444,7 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getJobs() async {
     final List<dynamic> data = await _client
         .from('jobs')
-        .select()
+        .select('*, poster_id')
         .order('created_at', ascending: false);
     
     return List<Map<String, dynamic>>.from(data);
@@ -458,8 +458,32 @@ class SupabaseService {
         .from('saved_jobs')
         .select('job_id')
         .eq('user_id', userId);
-    
-    return data.map((json) => json['job_id'] as String).toList();
+
+    return data.map((m) => m['job_id'] as String).toList();
+  }
+
+  Future<void> postJob(Map<String, dynamic> jobData) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    await _client.from('jobs').insert({
+      ...jobData,
+      'poster_id': userId,
+    });
+  }
+
+  Future<void> updateJob(String jobId, Map<String, dynamic> jobData) async {
+    await _client
+        .from('jobs')
+        .update(jobData)
+        .eq('id', jobId);
+  }
+
+  Future<void> deleteJob(String jobId) async {
+    await _client
+        .from('jobs')
+        .delete()
+        .eq('id', jobId);
   }
 
   Future<void> toggleSaveJob(String jobId, bool currentlySaved) async {

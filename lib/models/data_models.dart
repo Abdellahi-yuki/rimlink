@@ -268,6 +268,9 @@ class Job {
   final String location;
   final String description;
   final bool isEasyApply;
+  final bool isPromoted;
+  final String applyLink;
+  final String posterId;
   final DateTime createdAt;
 
   Job({
@@ -277,6 +280,9 @@ class Job {
     required this.location,
     required this.description,
     this.isEasyApply = false,
+    this.isPromoted = false,
+    required this.applyLink,
+    required this.posterId,
     required this.createdAt,
   });
 
@@ -288,9 +294,14 @@ class Job {
       location: map['location'] ?? '',
       description: map['description'] ?? '',
       isEasyApply: map['is_easy_apply'] ?? false,
+      isPromoted: map['is_promoted'] ?? false,
+      applyLink: map['apply_link'] ?? '',
+      posterId: map['poster_id'] ?? '',
       createdAt: DateTime.parse(map['created_at']),
     );
   }
+
+
 
   Map<String, dynamic> toMap() {
     return {

@@ -75,7 +75,11 @@ class _JobsPageState extends State<JobsPage> {
         elevation: 1,
         backgroundColor: Colors.white,
       ),
-      body: _isLoading 
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showPostJobDialog,
+        child: const Icon(Icons.add),
+      ),
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadJobs,
@@ -175,6 +179,126 @@ class _JobsPageState extends State<JobsPage> {
             Icon(icon, size: 16, color: isActive ? Colors.green[700] : Colors.grey[800]),
             const SizedBox(width: 4),
             Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isActive ? Colors.green[700] : Colors.black)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPostJobDialog() {
+    final titleController = TextEditingController();
+    final companyController = TextEditingController();
+    final locationController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final applyLinkController = TextEditingController();
+    bool isPromoted = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Post a Job', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Job Title',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: companyController,
+                  decoration: const InputDecoration(
+                    labelText: 'Company Name',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Location (e.g., Remote, New York, NY)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: 'Job Description',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: applyLinkController,
+                  decoration: const InputDecoration(
+                    labelText: 'Apply Link (URL)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: isPromoted,
+                      onChanged: (val) => setState(() => isPromoted = val ?? false),
+                    ),
+                    const Text('Promoted Job'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.trim().isNotEmpty && 
+                    companyController.text.trim().isNotEmpty &&
+                    locationController.text.trim().isNotEmpty &&
+                    descriptionController.text.trim().isNotEmpty &&
+                    applyLinkController.text.trim().isNotEmpty) {
+                  final jobData = {
+                    'title': titleController.text.trim(),
+                    'company': companyController.text.trim(),
+                    'location': locationController.text.trim(),
+                    'description': descriptionController.text.trim(),
+                    'apply_link': applyLinkController.text.trim(),
+                    'is_promoted': isPromoted,
+                    'is_easy_apply': false, // Disabled as per requirements
+                  };
+
+                  try {
+                    await _supabaseService.postJob(jobData);
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Job posted successfully!')),
+                      );
+                      _loadJobs();
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error posting job: $e')),
+                      );
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+              child: const Text('Post Job', style: TextStyle(color: Colors.white)),
+            ),
           ],
         ),
       ),
